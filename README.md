@@ -1,11 +1,12 @@
-# Efad Sarkar | AI Automation Engineer
+# Efad Sarkar — AI Automation & Agents
 
-Portfolio site: n8n workflows, AI agents, RAG chatbots, voice agents and API integrations.
+Personal portfolio showcasing hands-on projects across AI agents, n8n workflow automation, RAG chatbots, voice assistants and integrations.
 
-Live site: https://kingxefad-prog.github.io
+**Live portfolio:** https://efad-sarkar.github.io
 
-Built as a single static page (`index.html`, no build step). To edit, change the text in `index.html` and commit.
+Built as a responsive static website using HTML and CSS. No build step required.
 
 ## Contact
 - Email: efadsarkar567@gmail.com
 - LinkedIn: https://www.linkedin.com/in/efad-sarkar/
+- GitHub: https://github.com/efad-sarkar
