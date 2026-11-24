@@ -1,0 +1,358 @@
+{
+  "name": "02 - Client Onboarding & Delivery Workspace Setup (Google Drive Nodes)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "client-onboarding",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -176,
+        -160
+      ],
+      "id": "df597528-f804-4dfa-9ac7-847654968cb3",
+      "name": "Client Intake Webhook",
+      "webhookId": "afd3dd57-4867-44c0-a444-caeed6de03f8"
+    },
+    {
+      "parameters": {
+        "jsCode": "const b=$json.body??$json;\nconst required=[\"client_name\",\"client_email\",\"project_name\"];\nconst missing=required.filter(k=>!String(b[k]??\"\").trim());\nconst safe=(s)=>String(s??\"\").trim().replace(/[\\\\/:*?\"<>|#%{}~&]/g,\"-\").replace(/\\s+/g,\"_\").slice(0,80);\nconst clientFolder=safe(`${b.client_name||\"Client\"}_${b.project_name||\"Project\"}`);\nreturn [{json:{\n  is_valid:missing.length===0,\n  missing_fields:missing,\n  client_name:String(b.client_name??\"\").trim(),\n  client_email:String(b.client_email??\"\").trim(),\n  project_name:String(b.project_name??\"\").trim(),\n  client_folder_name:clientFolder,\n  subfolders:[\"01_Brief\",\"02_Reference_Assets\",\"03_AI_Concepts\",\"04_Final_Creatives\",\"05_Reports\"]\n}}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        64,
+        -160
+      ],
+      "id": "f0a990b8-11dc-4821-bd02-856101da1362",
+      "name": "Validate & Prepare Client Workspace"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "0b66a473-18ae-4c7b-b50a-d0795cf5bbbc",
+              "leftValue": "={{ $json.is_valid }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        304,
+        -160
+      ],
+      "id": "6e103dbb-3a79-410c-8282-04593370ee14",
+      "name": "Client Details Valid?"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({success:false,missing_fields:$json.missing_fields}) }}",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        544,
+        64
+      ],
+      "id": "2c5f9d3f-9b02-48d9-b309-eea6400b5453",
+      "name": "Reject Invalid Client Intake"
+    },
+    {
+      "parameters": {
+        "resource": "folder",
+        "name": "={{ $('Validate & Prepare Client Workspace').first().json.client_folder_name }}",
+        "driveId": {
+          "__rl": true,
+          "value": "My Drive",
+          "mode": "list",
+          "cachedResultName": "My Drive",
+          "cachedResultUrl": "https://drive.google.com/drive/my-drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "1Vpz5afBLe513vmsdoHtU1xOZFECgubCY",
+          "mode": "list",
+          "cachedResultName": "Assingment -2",
+          "cachedResultUrl": "https://drive.google.com/drive/folders/1Vpz5afBLe513vmsdoHtU1xOZFECgubCY"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        544,
+        -256
+      ],
+      "id": "c2e6649b-d136-4703-8c3f-e75eeac1c02a",
+      "name": "Google Drive - Create Client Folder",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "REDACTED",
+          "name": "REDACTED"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const root=$json;\nconst client=$(\"Validate & Prepare Client Workspace\").first().json;\nif(!root.id) throw new Error(\"Google Drive did not return a folder ID.\");\nreturn client.subfolders.map((name)=>({\n  json:{name,parent_id:root.id,client_name:client.client_name,client_email:client.client_email,project_name:client.project_name,root_folder_id:root.id},\n  pairedItem:{item:0}\n}));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        784,
+        -256
+      ],
+      "id": "ee5e6cdd-2574-4c45-bf05-fdbe8b641d68",
+      "name": "Build Client Subfolder Items"
+    },
+    {
+      "parameters": {
+        "resource": "folder",
+        "name": "={{ $json.name }}",
+        "driveId": {
+          "__rl": true,
+          "value": "My Drive",
+          "mode": "list",
+          "cachedResultName": "My Drive",
+          "cachedResultUrl": "https://drive.google.com/drive/my-drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "={{ $json.parent_id }}",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        1024,
+        -256
+      ],
+      "id": "c9209304-ac90-4822-a44f-3b1073df378f",
+      "name": "Google Drive - Create Subfolders",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "REDACTED",
+          "name": "REDACTED"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const created=$input.all().map(i=>({name:i.json.name||i.json.body?.name||\"Folder\",id:i.json.id}));\nconst base=$(\"Validate & Prepare Client Workspace\").first().json;\nconst root=$(\"Google Drive - Create Client Folder\").first().json;\nreturn [{json:{\n  success:true,\n  client_name:base.client_name,\n  client_email:base.client_email,\n  project_name:base.project_name,\n  root_folder_id:root.id,\n  root_folder_url:`https://drive.google.com/drive/folders/${root.id}`,\n  subfolders:created,\n  workspace_status:\"created\"\n}}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1264,
+        -256
+      ],
+      "id": "ea083a9e-308e-4cba-8692-fef82aaacbfc",
+      "name": "Build Onboarding Summary"
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.client_email }}",
+        "subject": "={{ `Welcome ${$json.client_name} — your project workspace is ready` }}",
+        "emailType": "text",
+        "message": "={{ `Hello ${$json.client_name},\\n\\nYour project workspace for ${$json.project_name} is ready. You can use this folder to coordinate briefs, reference assets, concepts, final creatives and reports:\\n\\n${$json.root_folder_url}\\n\\nPlease share assets only through the agreed project process.\\n\\nBest regards` }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        1504,
+        -256
+      ],
+      "id": "78d9bbbd-739c-4458-969c-8d24429c5452",
+      "name": "Gmail - Send Workspace Welcome",
+      "webhookId": "767e2e5c-b2d7-4702-a282-f8cf6fabc66e",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "REDACTED",
+          "name": "REDACTED"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const summary=$(\"Build Onboarding Summary\").first().json;\nreturn [{json:{...summary,welcome_email_status:\"sent\"}}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1744,
+        -256
+      ],
+      "id": "4165255c-d014-42ab-ad8e-c5f607971b6f",
+      "name": "Prepare Onboarding Response"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1984,
+        -256
+      ],
+      "id": "d4637bed-f05b-43fa-b027-697c3c572e34",
+      "name": "Return Onboarding Result"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Client Intake Webhook": {
+      "main": [
+        [
+          {
+            "node": "Validate & Prepare Client Workspace",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate & Prepare Client Workspace": {
+      "main": [
+        [
+          {
+            "node": "Client Details Valid?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Client Details Valid?": {
+      "main": [
+        [
+          {
+            "node": "Google Drive - Create Client Folder",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Reject Invalid Client Intake",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Drive - Create Client Folder": {
+      "main": [
+        [
+          {
+            "node": "Build Client Subfolder Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Client Subfolder Items": {
+      "main": [
+        [
+          {
+            "node": "Google Drive - Create Subfolders",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Drive - Create Subfolders": {
+      "main": [
+        [
+          {
+            "node": "Build Onboarding Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Onboarding Summary": {
+      "main": [
+        [
+          {
+            "node": "Gmail - Send Workspace Welcome",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail - Send Workspace Welcome": {
+      "main": [
+        [
+          {
+            "node": "Prepare Onboarding Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Onboarding Response": {
+      "main": [
+        [
+          {
+            "node": "Return Onboarding Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "92e533c9-ed09-450d-b7bc-4560cc0732ad",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "REDACTED_LONG_HEX_SECRET"
+  },
+  "nodeGroups": [],
+  "id": "a3K2JEEUy4Xa5oqT",
+  "tags": []
+}

@@ -1,0 +1,372 @@
+{
+  "name": "AI Job Application Assistant",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "6227e602-558c-43e9-8a8a-4801adc39a4d",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "a829aea8-5d82-4e74-a006-ddf4b0bb0293",
+      "name": "Webhook",
+      "webhookId": "6227e602-558c-43e9-8a8a-4801adc39a4d"
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "binaryPropertyName": "resume",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        288,
+        0
+      ],
+      "id": "7919af53-9238-43ad-bb02-23f61e905ad6",
+      "name": "Extract from File"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "4a434b82-433e-493c-81ea-89b6e5862b56",
+              "name": "resume_text",
+              "value": "={{ $json.text }}",
+              "type": "string"
+            },
+            {
+              "id": "8e31f16e-4b43-407b-972e-1319dd51b286",
+              "name": "job_post",
+              "value": "={{ $('Webhook').item.json.body.job_post }}",
+              "type": "string"
+            },
+            {
+              "id": "fb103158-959d-47f7-bfad-4433e9d3b862",
+              "name": "email",
+              "value": "={{ $('Webhook').item.json.body.email }}",
+              "type": "string"
+            },
+            {
+              "id": "ec53a387-7cae-425a-8647-f67be27480a5",
+              "name": "name",
+              "value": "={{ $('Webhook').item.json.body.name }}",
+              "type": "string"
+            },
+            {
+              "id": "e2305d58-c00d-467c-aa94-cab50373a551",
+              "name": "tone",
+              "value": "={{ $('Webhook').item.json.body.tone }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        560,
+        -16
+      ],
+      "id": "b013d578-70d2-4405-9b48-ae9585905b7a",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are an expert career coach and professional writer.\n\nUsing ONLY the facts from the resume below, write application materials tailored to the job post.\n\nTASKS:\n1. A personalized cover letter (250-300 words) in a {{ $json.tone }} tone, signed as {{ $json.name }}. Match the job requirements to the candidate's real experience.\n2. A resume summary (3-4 lines) that highlights the candidate's strengths relevant to this job.\n\nRULES:\n- Do not invent experience, skills, companies, or numbers that are not in the resume.\n- Do not use placeholders like [Company Name]. Use the company name from the job post if available, otherwise write \"the hiring team\".\n- Keep the language natural, professional, and free of cliches.\n\nRESUME:\n{{ $json.resume_text }}\n\nJOB POST:\n{{ $json.job_post }}",
+        "hasOutputParser": true,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        784,
+        -16
+      ],
+      "id": "9bff1df2-0afb-4fa5-950b-6a578a68d8df",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n  \"cover_letter\": \"Dear Hiring Manager, ...\",\n  \"resume_summary\": \"Results-driven designer with ...\"\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        960,
+        208
+      ],
+      "id": "17bff163-285e-4df2-a7e9-b0aab657cdf0",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.5-flash-lite",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        736,
+        224
+      ],
+      "id": "e61f85ae-9ddc-4cf6-8d4d-895ee0313932",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "REDACTED",
+          "name": "REDACTED"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "html": "<!DOCTYPE html>\n<html>\n<head>\n<meta charset=\"UTF-8\">\n<style>\n  body { font-family: Arial, Helvetica, sans-serif; color: #222; margin: 40px; line-height: 1.6; font-size: 13px; }\n  h1 { font-size: 22px; margin: 0; color: #3730a3; }\n  .email { color: #666; margin-bottom: 20px; }\n  h2 { font-size: 15px; color: #3730a3; border-bottom: 2px solid #e0e7ff; padding-bottom: 4px; margin-top: 28px; }\n  p { margin: 0 0 10px; }\n</style>\n</head>\n<body>\n  <h1>{{ $('Edit Fields').item.json.name }}</h1>\n  <div class=\"email\">{{ $('Edit Fields').item.json.email }}</div>\n\n  <h2>Cover Letter</h2>\n  <p>{{ $json.output.cover_letter.replace(/\\n/g, '<br>') }}</p>\n\n  <h2>Resume Summary</h2>\n  <p>{{ $json.output.resume_summary.replace(/\\n/g, '<br>') }}</p>\n</body>\n</html>"
+      },
+      "type": "n8n-nodes-base.html",
+      "typeVersion": 1.2,
+      "position": [
+        1168,
+        -16
+      ],
+      "id": "88120a50-21cd-43a5-b791-c402eb69abca",
+      "name": "HTML"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.pdfshift.io/v3/convert/pdf",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "=     {\n       \"source\": {{ JSON.stringify($json.html) }},\n       \"landscape\": false,\n       \"use_print\": false\n     }",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        1392,
+        -16
+      ],
+      "id": "c4fa3d29-415f-44e3-977b-47dfbdb7a8d6",
+      "name": "HTTP Request",
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "REDACTED",
+          "name": "REDACTED"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Webhook').item.json.body.email }}",
+        "subject": "Your tailored cover letter and resume summary",
+        "message": "=<p>Hi {{ $('Edit Fields').item.json.name }},</p>\n<p>Your tailored cover letter and resume summary are ready.</p>\n<p>Good luck with your application!</p>",
+        "options": {
+          "appendAttribution": false,
+          "attachmentsUi": {
+            "attachmentsBinary": [
+              {}
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1840,
+        -16
+      ],
+      "id": "8cb9e178-a942-4dea-879e-15737c2ffa0d",
+      "name": "Send a message",
+      "webhookId": "ffc64980-523d-44d6-bf0e-68e3281ca7d3",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "REDACTED",
+          "name": "REDACTED"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ {\n  \"success\": true,\n  \"filename\": \"Cover-Letter-and-Resume-Summary.pdf\",\n  \"pdfBase64\": $('Extract from File1').item.json.pdfBase64\n} }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        2048,
+        -32
+      ],
+      "id": "842b64ca-d4b3-48fe-8a49-d87de124773d",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "operation": "binaryToPropery",
+        "destinationKey": "pdfBase64",
+        "options": {
+          "keepSource": "both"
+        }
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        1632,
+        -16
+      ],
+      "id": "b0db71cc-b05c-4dc9-a9d8-0070a23ee5b9",
+      "name": "Extract from File1"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Extract from File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "HTML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTML": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Extract from File1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a message": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Respond to Webhook": {
+      "main": [
+        []
+      ]
+    },
+    "Extract from File1": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "28185215-a69a-42a1-8130-387b0e51275d",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "REDACTED_LONG_HEX_SECRET"
+  },
+  "nodeGroups": [],
+  "id": "JYEww9vYQWTd7RKk",
+  "tags": []
+}

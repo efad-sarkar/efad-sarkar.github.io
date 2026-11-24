@@ -1,0 +1,414 @@
+{
+  "name": "01 - AI Creative Production Pipeline",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "creative-brief",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -464,
+        -1040
+      ],
+      "id": "92efab53-74b9-4fbd-ba55-6c4ae71c2820",
+      "name": "Creative Brief Webhook",
+      "webhookId": "c710d4c7-8045-43cb-ac38-339c4276eb91"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "\nlet data = $json.body ?? $json;\n\nif (typeof data === 'string') {\n  try {\n    data = JSON.parse(data);\n  } catch {\n    data = {};\n  }\n}\n\nif (!data || typeof data !== 'object' || Array.isArray(data)) {\n  data = {};\n}\n\nconst normalized = {\n  client_name: String(data.client_name ?? '').trim(),\n  brand_name: String(data.brand_name ?? '').trim(),\n  product: String(data.product ?? '').trim(),\n  campaign_goal: String(data.campaign_goal ?? '').trim(),\n  target_audience: String(data.target_audience ?? '').trim(),\n  platform: String(data.platform ?? '').trim(),\n  video_duration: Number(data.video_duration ?? 30),\n  tone: String(data.tone ?? 'Professional').trim(),\n  brand_guidelines: String(data.brand_guidelines ?? '').trim()\n};\n\nconst requiredFields = [\n  'client_name',\n  'brand_name',\n  'product',\n  'campaign_goal',\n  'target_audience',\n  'platform'\n];\n\nconst missing_fields = requiredFields.filter(\n  field => !normalized[field]\n);\n\nreturn {\n  ...normalized,\n  is_valid: missing_fields.length === 0,\n  missing_fields\n};\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -208,
+        -1040
+      ],
+      "id": "cd8d9f0f-0612-491a-adf8-0bd363993877",
+      "name": "Normalize & Validate Brief"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "0b66a473-18ae-4c7b-b50a-d0795cf5bbbc",
+              "leftValue": "={{ $json.is_valid }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        32,
+        -1040
+      ],
+      "id": "21bcf074-4e85-44ed-9d74-4f6b0157ac19",
+      "name": "Brief Valid?"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({success:false,message:'Missing or invalid required fields',missing_fields:$json.missing_fields}) }}",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        272,
+        -832
+      ],
+      "id": "244ea82c-b41d-40e4-8611-a881de734225",
+      "name": "Reject Incomplete Brief"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://openrouter.ai/api/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer REDACTED"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "HTTP-Referer",
+              "value": "https://your-portfolio.example"
+            },
+            {
+              "name": "X-Title",
+              "value": "AI Automation Portfolio Demo"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {model: 'nvidia/nemotron-3.5-super-vl:free', temperature: 0.2, response_format: {type:'json_object'}, messages: [{role:'system',content:'You are a senior creative strategist. Return only valid JSON. Do not invent product claims or facts.'},{role:'user',content:'Analyze this client campaign brief. Return keys campaign_objective, audience, product_positioning, brand_tone, key_selling_points (array), creative_direction, missing_information (array), potential_challenges (array). Brief: ' + JSON.stringify($('Normalize & Validate Brief').first().json)}]} }}",
+        "options": {
+          "timeout": 120000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        272,
+        -1152
+      ],
+      "id": "07778201-a9e6-48c6-8088-b3bff9b35993",
+      "name": "LLM - Analyze Brief"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "function parseContent(value) {\n  if (typeof value !== \"string\") return value;\n  const cleaned = value.trim()\n    .replace(/^```(?:json)?\\s*/i, \"\")\n    .replace(/\\s*```$/, \"\");\n  return JSON.parse(cleaned);\n}\n\nconst content = $json.choices?.[0]?.message?.content;\nif (!content) {\n  throw new Error(\"OpenRouter returned no analysis content. Check the model response.\");\n}\n\nconst analysis = parseContent(\n  Array.isArray(content) ? content.map(x => x.text ?? \"\").join(\"\\n\") : content\n);\n\nconst brief = $(\"Normalize & Validate Brief\").first().json;\nconst required = [\n  \"campaign_objective\",\n  \"audience\",\n  \"product_positioning\",\n  \"creative_direction\"\n];\nconst missing = required.filter(key => !analysis?.[key]);\n\nif (missing.length) {\n  throw new Error(\"AI analysis missing fields: \" + missing.join(\", \"));\n}\n\nreturn {\n  brief,\n  analysis\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        512,
+        -1152
+      ],
+      "id": "3a6ce169-03e5-4694-b71d-0db9344bf787",
+      "name": "Parse Brief Analysis"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://openrouter.ai/api/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer REDACTED"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "HTTP-Referer",
+              "value": "https://your-portfolio.example"
+            },
+            {
+              "name": "X-Title",
+              "value": "AI Automation Portfolio Demo"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {model: 'nvidia/nemotron-3.5-super-vl:free', temperature: 0.7, response_format: {type:'json_object'}, messages: [{role:'system',content:'You are an advertising creative director. Return only valid JSON. Never invent unsupported product benefits, certifications, clinical claims, or guarantees.'},{role:'user',content:'Generate exactly 3 distinct creative concepts from this brief and analysis. Each concept must contain title, creative_idea, visual_direction, scenes (array), image_prompt, video_prompt, voiceover, cta. Keep scene timing within the requested duration. Return JSON with a concepts array containing exactly 3 objects. Context: ' + JSON.stringify($json)}]} }}",
+        "options": {
+          "timeout": 120000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        752,
+        -1152
+      ],
+      "id": "e8de5f8c-77ec-45ae-9c77-21082eaafecd",
+      "name": "LLM - Generate 3 Concepts"
+    },
+    {
+      "parameters": {
+        "jsCode": "function parseContent(value) {\n  if (typeof value !== \"string\") return value;\n  const cleaned = value.trim()\n    .replace(/^```(?:json)?\\s*/i, \"\")\n    .replace(/\\s*```$/, \"\");\n  return JSON.parse(cleaned);\n}\n\nconst response = $input.first().json;\nconst content = response.choices?.[0]?.message?.content;\n\nif (!content) {\n  throw new Error(\"No creative concepts returned by the model.\");\n}\n\nconst result = parseContent(\n  Array.isArray(content) ? content.map(x => x.text ?? \"\").join(\"\\n\") : content\n);\n\nif (!Array.isArray(result.concepts) || result.concepts.length !== 3) {\n  throw new Error(\n    `Expected exactly 3 concepts; received ${result.concepts?.length ?? 0}.`\n  );\n}\n\nconst context = $(\"Parse Brief Analysis\").first().json;\n\nreturn result.concepts.map((concept, index) => ({\n  json: {\n    ...context,\n    concept_number: index + 1,\n    concept\n  },\n  pairedItem: { item: 0 }\n}));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        992,
+        -1152
+      ],
+      "id": "339dd63d-74bc-4c9e-a7d6-ea336789fb0d",
+      "name": "Parse & Split Concepts"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://openrouter.ai/api/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer REDACTED"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "HTTP-Referer",
+              "value": "https://your-portfolio.example"
+            },
+            {
+              "name": "X-Title",
+              "value": "AI Automation Portfolio Demo"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {model: 'nvidia/nemotron-3.5-super-vl:free', temperature: 0.1, response_format: {type:'json_object'}, messages: [{role:'system',content:'You are a strict creative quality reviewer. Return only valid JSON. Scores must be integers within each maximum.'},{role:'user',content:'Evaluate this concept. Return JSON with scores: campaign_relevance (0-25), audience_relevance (0-25), brand_alignment (0-20), creativity (0-15), production_feasibility (0-15), plus feedback (string) and improvements (array). Brief and analysis: ' + JSON.stringify($json.brief) + ' ' + JSON.stringify($json.analysis) + ' Concept: ' + JSON.stringify($json.concept)}]} }}",
+        "options": {
+          "timeout": 120000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1232,
+        -1152
+      ],
+      "id": "6ecf686d-9d5a-4ab0-89e0-5ecb68a98073",
+      "name": "LLM - Score Each Concept"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "function parseContent(value) {\n  if (typeof value !== \"string\") return value;\n  const cleaned = value.trim()\n    .replace(/^```(?:json)?\\s*/i, \"\")\n    .replace(/\\s*```$/, \"\");\n  return JSON.parse(cleaned);\n}\n\nconst content = $json.choices?.[0]?.message?.content;\nif (!content) throw new Error(\"No scoring response returned by the model.\");\n\nconst review = parseContent(\n  Array.isArray(content) ? content.map(x => x.text ?? \"\").join(\"\\n\") : content\n);\n\n// Accept scores either inside { scores: {...} } or directly at the root.\nconst source = review.scores ?? review;\nconst limits = {\n  campaign_relevance: { max: 25, aliases: [\"campaign_relevance\", \"campaignRelevance\", \"campaign_relevance_score\"] },\n  audience_relevance: { max: 25, aliases: [\"audience_relevance\", \"audienceRelevance\", \"audience_relevance_score\"] },\n  brand_alignment: { max: 20, aliases: [\"brand_alignment\", \"brandAlignment\", \"brand_alignment_score\"] },\n  creativity: { max: 15, aliases: [\"creativity\", \"creative_score\", \"creativity_score\"] },\n  production_feasibility: { max: 15, aliases: [\"production_feasibility\", \"productionFeasibility\", \"production_feasibility_score\"] }\n};\n\nfunction readScore(aliases, max) {\n  let raw;\n  for (const key of aliases) {\n    if (source[key] !== undefined && source[key] !== null) {\n      raw = source[key];\n      break;\n    }\n  }\n  if (raw === undefined && source.total_scores && typeof source.total_scores === \"object\") {\n    for (const key of aliases) {\n      if (source.total_scores[key] !== undefined) { raw = source.total_scores[key]; break; }\n    }\n  }\n  if (raw && typeof raw === \"object\") raw = raw.score ?? raw.value ?? raw.points;\n  if (typeof raw === \"string\") {\n    const fraction = raw.match(/(-?\\d+(?:\\.\\d+)?)\\s*\\/\\s*(\\d+(?:\\.\\d+)?)/);\n    if (fraction) {\n      const numerator = Number(fraction[1]);\n      const denominator = Number(fraction[2]);\n      if (denominator > 0) raw = (numerator / denominator) * max;\n    } else {\n      const match = raw.match(/-?\\d+(?:\\.\\d+)?/);\n      raw = match ? Number(match[0]) : NaN;\n    }\n  }\n  let value = Number(raw);\n  if (!Number.isFinite(value)) {\n    throw new Error(`Model did not return a numeric score for ${aliases[0]}. Received: ${JSON.stringify(raw)}. Full response: ${JSON.stringify(review).slice(0,1200)}`);\n  }\n  // If the model returned a percentage on a 0-100 scale, convert it to this category's maximum.\n  if (value > max && value <= 100) value = (value / 100) * max;\n  if (value < 0 || value > max) {\n    throw new Error(`Score for ${aliases[0]} is out of range after normalization: ${value}; expected 0-${max}.`);\n  }\n  return Math.round(value);\n}\n\nconst scores = {};\nfor (const [key, config] of Object.entries(limits)) {\n  scores[key] = readScore(config.aliases, config.max);\n}\n\nconst conceptItem = $(\"Parse & Split Concepts\").item.json;\nconst total = Object.values(scores).reduce((sum, value) => sum + value, 0);\n\nreturn {\n  concept_number: conceptItem.concept_number,\n  concept: conceptItem.concept,\n  scores,\n  total_score: total,\n  quality_status: total >= 80\n    ? \"Recommended for human review\"\n    : total >= 60\n      ? \"Needs review\"\n      : \"Rework suggested\",\n  feedback: String(review.feedback ?? review.explanation ?? \"\"),\n  improvements: Array.isArray(review.improvements) ? review.improvements : []\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1472,
+        -1152
+      ],
+      "id": "be787d0a-d417-475f-b3f4-0c7dc7fc1e3e",
+      "name": "Validate Scores & Reattach Concept"
+    },
+    {
+      "parameters": {
+        "jsCode": "const results = $input.all().map(item=>item.json).sort((a,b)=>a.concept_number-b.concept_number);\nconst brief = $(\"Normalize & Validate Brief\").first().json;\nreturn [{json:{\n  success:true,\n  client:brief.client_name,\n  brand:brief.brand_name,\n  campaign_goal:brief.campaign_goal,\n  platform:brief.platform,\n  generated_at:new Date().toISOString(),\n  concept_count:results.length,\n  concepts:results,\n  note:\"AI scores are advisory. A human creative reviewer should approve concepts before production.\"\n}}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1712,
+        -1152
+      ],
+      "id": "ad34c9fd-edbe-491f-bfa7-9e29441c9626",
+      "name": "Build Final Creative Report"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1952,
+        -1152
+      ],
+      "id": "b4b2d57a-1eff-4ce8-a10f-9edd30ad6494",
+      "name": "Return Creative Report"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Creative Brief Webhook": {
+      "main": [
+        [
+          {
+            "node": "Normalize & Validate Brief",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize & Validate Brief": {
+      "main": [
+        [
+          {
+            "node": "Brief Valid?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Brief Valid?": {
+      "main": [
+        [
+          {
+            "node": "LLM - Analyze Brief",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Reject Incomplete Brief",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LLM - Analyze Brief": {
+      "main": [
+        [
+          {
+            "node": "Parse Brief Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Brief Analysis": {
+      "main": [
+        [
+          {
+            "node": "LLM - Generate 3 Concepts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LLM - Generate 3 Concepts": {
+      "main": [
+        [
+          {
+            "node": "Parse & Split Concepts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse & Split Concepts": {
+      "main": [
+        [
+          {
+            "node": "LLM - Score Each Concept",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LLM - Score Each Concept": {
+      "main": [
+        [
+          {
+            "node": "Validate Scores & Reattach Concept",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Scores & Reattach Concept": {
+      "main": [
+        [
+          {
+            "node": "Build Final Creative Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Final Creative Report": {
+      "main": [
+        [
+          {
+            "node": "Return Creative Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "c12e4914-f35c-4d2f-b518-a9dca6bdb7a3",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "REDACTED_LONG_HEX_SECRET"
+  },
+  "nodeGroups": [],
+  "id": "pjZy6z0kCvAmHSh8",
+  "tags": []
+}

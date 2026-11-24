@@ -1,0 +1,547 @@
+{
+  "name": "Assignment -2",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "b08188f0-368a-4fcb-9795-8d2555d2d978",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        -144
+      ],
+      "id": "aa488f00-532b-41b4-8162-b6f06308ded0",
+      "name": "Webhook",
+      "webhookId": "b08188f0-368a-4fcb-9795-8d2555d2d978"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.body.query }}",
+        "options": {
+          "systemMessage": "You are an AI assistant that answers users based on their query and the provided context.\n\nUse the retrieved context and user information to generate an accurate, relevant, and helpful answer.\n\nRules:\n- Answer only from the provided context.\n- Do not make up information.\n- If the answer is not available in the context, clearly say that the information is not available.\n- Consider the user's name and other provided details when relevant.\n- Keep the answer short, clear, natural, and professional.\n- Do not mention the RAG system, vector database, or internal workflow."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        256,
+        -144
+      ],
+      "id": "d964f96c-c786-4e61-a113-9d3a824e8533",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolDescription": "work with your data in pinecone store and answer based on context",
+        "pineconeIndex": {
+          "__rl": true,
+          "value": "efadzet",
+          "mode": "list",
+          "cachedResultName": "efadzet"
+        },
+        "topK": 2,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStorePinecone",
+      "typeVersion": 1.3,
+      "position": [
+        368,
+        96
+      ],
+      "id": "455b6c51-eb45-4858-8dd4-d781b68ffdbd",
+      "name": "Pinecone Vector Store",
+      "credentials": {
+        "pineconeApi": {
+          "id": "REDACTED",
+          "name": "REDACTED"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        448,
+        304
+      ],
+      "id": "8d83127f-cdb6-4c0c-b40d-addfb05ce7d4",
+      "name": "Embeddings OpenAI",
+      "credentials": {
+        "openAiApi": {
+          "id": "REDACTED",
+          "name": "REDACTED"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Webhook').item.json.body.email }}",
+        "subject": "Response to Your Query",
+        "message": "=<div style=\"font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 24px; background: #f8f9fa; color: #333;\">\n\n  <div style=\"background: #ffffff; padding: 24px; border-radius: 10px;\">\n    \n    <h2 style=\"margin-top: 0;\">Hello {{ $('Webhook').item.json.body.name }},</h2>\n\n    <p>Thank you for submitting your query.</p>\n\n    <div style=\"background: #f1f3f5; padding: 16px; border-radius: 8px; margin: 20px 0;\">\n      <strong>Your Query:</strong>\n      <p style=\"margin-bottom: 0;\">{{ $('Webhook').item.json.body.query }}</p>\n    </div>\n\n    <div style=\"padding: 16px 0;\">\n      <strong>AI Answer:</strong>\n      <p>{{ $json.output }}</p>\n    </div>\n\n    <p style=\"margin-bottom: 0;\">\n      Best regards,<br>\n      <strong>Support Team</strong>\n    </p>\n\n  </div>\n\n</div>",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        720,
+        -240
+      ],
+      "id": "2f6e8a0a-0c1d-4580-ae9d-f711823233c7",
+      "name": "User message",
+      "webhookId": "2945bcd0-b98a-4404-b209-11015ca37fcb",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "REDACTED",
+          "name": "REDACTED"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "kingxefad@gmail.com",
+        "subject": "New Query Received",
+        "message": "=<div style=\"font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 24px; background: #f8f9fa; color: #333;\">\n\n  <div style=\"background: #ffffff; padding: 24px; border-radius: 10px;\">\n\n    <h2 style=\"margin-top: 0;\">New Query Received</h2>\n\n    <p>A new query has been submitted through the website.</p>\n\n    <hr style=\"border: 0; border-top: 1px solid #ddd; margin: 20px 0;\">\n\n    <p><strong>Name:</strong> {{ $('Webhook').item.json.body.name }}</p>\n    <p><strong>Email:</strong>{{ $('Webhook').item.json.body.email }} </p>\n    <p><strong>Phone:</strong> {{ $('Webhook').item.json.body.phone }}</p>\n\n    <div style=\"background: #f1f3f5; padding: 16px; border-radius: 8px; margin-top: 20px;\">\n      <strong>User Query:</strong>\n      <p style=\"margin-bottom: 0;\">{{ $('Webhook').item.json.body.query }}</p>\n    </div>\n\n    <div style=\"padding: 16px 0;\">\n      <strong>AI Response:</strong>\n      <p>{{ $json.output }}</p>\n    </div>\n\n    <hr style=\"border: 0; border-top: 1px solid #ddd;\">\n\n    <p style=\"font-size: 12px; color: #777; margin-bottom: 0;\">\n      This is an automated report generated by the AI Query System.\n    </p>\n\n  </div>\n\n</div>",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        720,
+        -48
+      ],
+      "id": "ae8e39c3-f1de-48b3-bf6a-cb8853f0c9c3",
+      "name": "Admin report",
+      "webhookId": "2945bcd0-b98a-4404-b209-11015ca37fcb",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "REDACTED",
+          "name": "REDACTED"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "ministral-14b-2512",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatMistralCloud",
+      "typeVersion": 1,
+      "position": [
+        128,
+        64
+      ],
+      "id": "85f648cb-6a39-48c1-a186-a9c2978758d0",
+      "name": "Mistral Cloud Chat Model",
+      "credentials": {
+        "mistralCloudApi": {
+          "id": "REDACTED",
+          "name": "REDACTED"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "base": {
+          "__rl": true,
+          "value": "appZeFw3Fqmn00wv6",
+          "mode": "list",
+          "cachedResultName": "Query Logs",
+          "cachedResultUrl": "https://airtable.com/appZeFw3Fqmn00wv6"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblCzKOQuMs27mz7F",
+          "mode": "list",
+          "cachedResultName": "AI Query Logs",
+          "cachedResultUrl": "https://airtable.com/appZeFw3Fqmn00wv6/tblCzKOQuMs27mz7F"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Name": "={{ $('Webhook').item.json.body.name }}",
+            "Email": "={{ $('Webhook').item.json.body.email }}",
+            "Phone": "={{ $('Webhook').item.json.body.phone }}",
+            "Query": "={{ $('Webhook').item.json.body.query }}",
+            "Created At": "={{ $('Webhook').item.json.body.submittedAt }}",
+            "AI Answer": "={{ $('AI Agent').item.json.output }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Name",
+              "displayName": "Name",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Phone",
+              "displayName": "Phone",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Query",
+              "displayName": "Query",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "AI Answer",
+              "displayName": "AI Answer",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Created At",
+              "displayName": "Created At",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        944,
+        -240
+      ],
+      "id": "25019c28-68e5-4f41-a3b1-1326890e612d",
+      "name": "Create a record",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "REDACTED",
+          "name": "REDACTED"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "1Ni1RXu_Eha1mZvK2y_2NWv21JBSpcM5D",
+          "mode": "list",
+          "cachedResultName": "Nexus_Enterprise_Overview_and_FAQ.docx",
+          "cachedResultUrl": "https://docs.google.com/document/d/1Ni1RXu_Eha1mZvK2y_2NWv21JBSpcM5D/edit?usp=drivesdk&ouid=106554294389438075588&rtpof=true&sd=true"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        1648,
+        192
+      ],
+      "id": "c68e27d6-e7be-48dd-a917-ad43937f81da",
+      "name": "store data",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "REDACTED",
+          "name": "REDACTED"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "dataType": "binary",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+      "typeVersion": 1.1,
+      "position": [
+        2016,
+        432
+      ],
+      "id": "2a44b5c4-83f8-4130-af84-be731d1bb548",
+      "name": "Default Data Loader"
+    },
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "triggerOn": "specificFolder",
+        "folderToWatch": {
+          "__rl": true,
+          "value": "1KhpSNl4tWLxKO6CsS6xvQrjDkf13Qo-r",
+          "mode": "list",
+          "cachedResultName": "new",
+          "cachedResultUrl": "https://drive.google.com/drive/folders/1KhpSNl4tWLxKO6CsS6xvQrjDkf13Qo-r"
+        },
+        "event": "fileCreated",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDriveTrigger",
+      "typeVersion": 1,
+      "position": [
+        1424,
+        192
+      ],
+      "id": "cdd61066-3b48-4acd-9b2b-5c6f821fe76e",
+      "name": "knowladge",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "REDACTED",
+          "name": "REDACTED"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "insert",
+        "pineconeIndex": {
+          "__rl": true,
+          "value": "ertttttou",
+          "mode": "list",
+          "cachedResultName": "ertttttou"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStorePinecone",
+      "typeVersion": 1.3,
+      "position": [
+        1872,
+        192
+      ],
+      "id": "adb231d7-a3eb-4940-abb0-e434f846311f",
+      "name": "Pinecone Vector Store1",
+      "credentials": {
+        "pineconeApi": {
+          "id": "REDACTED",
+          "name": "REDACTED"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        1888,
+        432
+      ],
+      "id": "6c6e88d3-c58c-42f5-b65e-9b440c775d7b",
+      "name": "Embeddings OpenAI1",
+      "credentials": {
+        "openAiApi": {
+          "id": "REDACTED",
+          "name": "REDACTED"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "Pinecone Data store and download",
+        "height": 544,
+        "width": 1088,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1216,
+        80
+      ],
+      "typeVersion": 1,
+      "id": "13650914-8aca-4c16-a47b-c0674d318529",
+      "name": "Sticky Note"
+    }
+  ],
+  "pinData": {
+    "AI Agent": [
+      {
+        "json": {
+          "output": "The provided context does not specify the name of the CEO of Nexus. It only mentions the role of **Chief Executive Officer (CEO)** under the **Executive Leadership Board** but does not provide the individual's name."
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pinecone Vector Store": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings OpenAI": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Pinecone Vector Store",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "User message",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Admin report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mistral Cloud Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "User message": {
+      "main": [
+        [
+          {
+            "node": "Create a record",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "store data": {
+      "main": [
+        [
+          {
+            "node": "Pinecone Vector Store1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Default Data Loader": {
+      "ai_document": [
+        [
+          {
+            "node": "Pinecone Vector Store1",
+            "type": "ai_document",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "knowladge": {
+      "main": [
+        [
+          {
+            "node": "store data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings OpenAI1": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Pinecone Vector Store1",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "0741927b-58a6-4586-a34e-e9dd058b23bc",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "REDACTED_LONG_HEX_SECRET"
+  },
+  "nodeGroups": [],
+  "id": "afD5v4LTvHOrFWg7",
+  "tags": []
+}

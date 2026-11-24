@@ -1,0 +1,184 @@
+{
+  "name": "Weekly content ideas by niche (free)",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Setup\n1. **Google Sheet**: create a sheet with a tab named **Ideas** and this header row exactly: week | niche | hook | script | demo_to_record | cta | status\n2. **Gemini Ideas**: replace YOUR_GEMINI_API_KEY (free key from Google AI Studio). If the model name is rejected, check Google's docs for the current free model.\n3. **Save to Sheet**: connect your Google account, paste your Sheet ID.\n4. **Niches** node: edit niches, pain points or the language (default English).\n\nRuns every Monday 9:00 and adds about 10 new ideas (2 per niche) with status 'new'. Record the demo, upload the video to your Drive folder, and the other workflow does the rest.\n\nThe AI is told never to invent client results. Add real numbers yourself after you test a workflow.",
+        "height": 360,
+        "width": 560
+      },
+      "id": "b0000000-0000-4000-8000-000000000001",
+      "name": "Setup Notes",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        0,
+        -400
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "weeks",
+              "triggerAtDay": [
+                1
+              ],
+              "triggerAtHour": 9
+            }
+          ]
+        }
+      },
+      "id": "b0000000-0000-4000-8000-000000000002",
+      "name": "Every Monday",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const language = 'English';\nconst niches = [\n  { niche: 'Clinic', pain: 'patients miss appointments (no-shows) and the front desk answers the same WhatsApp questions all day' },\n  { niche: 'Gym', pain: 'new leads are not followed up fast, and membership renewals are forgotten' },\n  { niche: 'Hotel', pain: 'booking inquiries arrive after hours and go unanswered, and guests are not asked for reviews' },\n  { niche: 'Real estate', pain: 'agents reply to new leads too slowly and site visits are scheduled by hand' },\n  { niche: 'Small business', pain: 'owners repeat the same customer replies and track orders or inquiries manually' }\n];\nreturn niches.map(n => ({ json: { ...n, language } }));"
+      },
+      "id": "b0000000-0000-4000-8000-000000000003",
+      "name": "Niches",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-goog-api-key",
+              "value": "YOUR_GEMINI_API_KEY"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ contents: [{ parts: [{ text: 'You write short-form video ideas (TikTok and Instagram Reels) that help an AI automation freelancer win clients. Audience: business owners in the ' + $json.niche + ' niche, not developers. Common pain: ' + $json.pain + '. Write 2 different video ideas in ' + $json.language + '. Each idea needs: hook (first 2 seconds, states the problem in plain words), script (20 to 30 seconds spoken: problem, then the automation solution, then a call to action), demo_to_record (exactly what screen to record, e.g. an auto-reply on WhatsApp saving a lead to Google Sheet), cta (a one-word comment keyword plus the action, e.g. Comment FLOW and I will send the workflow). Rules: simple words, no jargon, no tool-name lectures, focus only on the automation and the business result. Never invent client names, results or statistics; describe the benefit generally. Return only JSON in this shape: {\"ideas\":[{\"hook\":\"\",\"script\":\"\",\"demo_to_record\":\"\",\"cta\":\"\"}]}' }] }], generationConfig: { responseMimeType: 'application/json' } }) }}",
+        "options": {
+          "batching": {
+            "batch": {
+              "batchSize": 1,
+              "batchInterval": 5000
+            }
+          }
+        }
+      },
+      "id": "b0000000-0000-4000-8000-000000000004",
+      "name": "Gemini Ideas",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        480,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const out = [];\nconst niches = $('Niches').all();\nconst week = new Date().toISOString().slice(0, 10);\n$input.all().forEach((item, i) => {\n  const raw = item.json.candidates[0].content.parts[0].text;\n  let data;\n  try {\n    data = JSON.parse(raw.replace(/```json|```/g, '').trim());\n  } catch (e) {\n    return; // skip a niche if Gemini returned bad JSON\n  }\n  (data.ideas || []).forEach(idea => {\n    out.push({ json: {\n      week,\n      niche: niches[i].json.niche,\n      hook: idea.hook,\n      script: idea.script,\n      demo_to_record: idea.demo_to_record,\n      cta: idea.cta,\n      status: 'new'\n    }});\n  });\n});\nreturn out;"
+      },
+      "id": "b0000000-0000-4000-8000-000000000005",
+      "name": "Flatten Ideas",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        720,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Ideas",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "b0000000-0000-4000-8000-000000000006",
+      "name": "Save to Sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        960,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "Every Monday": {
+      "main": [
+        [
+          {
+            "node": "Niches",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Niches": {
+      "main": [
+        [
+          {
+            "node": "Gemini Ideas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini Ideas": {
+      "main": [
+        [
+          {
+            "node": "Flatten Ideas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Flatten Ideas": {
+      "main": [
+        [
+          {
+            "node": "Save to Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "active": false
+}

@@ -1,0 +1,1096 @@
+{
+  "name": "E-Commerce Automation",
+  "nodes": [
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1h57jD5Y3HI_UEYzENOMk0L8cu6J11KtS1n3X4YHE9FU",
+          "mode": "list",
+          "cachedResultName": "Zenvio Products",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1h57jD5Y3HI_UEYzENOMk0L8cu6J11KtS1n3X4YHE9FU/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1h57jD5Y3HI_UEYzENOMk0L8cu6J11KtS1n3X4YHE9FU/edit#gid=0"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        304,
+        272
+      ],
+      "id": "aaf11725-653f-4252-a5c0-6b405040df50",
+      "name": "Get Sheet Products",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "REDACTED",
+          "name": "REDACTED"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "returnAll": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.wooCommerce",
+      "typeVersion": 1,
+      "position": [
+        528,
+        272
+      ],
+      "id": "bddc06d7-51c1-4a13-ade2-c0a0562a39bb",
+      "name": "Get many products",
+      "alwaysOutputData": true,
+      "executeOnce": true,
+      "credentials": {
+        "wooCommerceApi": {
+          "id": "REDACTED",
+          "name": "REDACTED"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const sheetRows = $('Get Sheet Products').all().map(i => i.json).filter(r => r.sku || r.name);\n\nconst seen = new Set();\nconst wooProducts = $input.all().map(i => i.json)\n  .filter(p => p.id && p.status !== 'trash' && !seen.has(p.id) && seen.add(p.id));\n\n// Safety: sheet khali hole kichu delete hobe na\nif (sheetRows.length === 0) {\n  throw new Error('Sheet is empty - sync aborted to protect store products');\n}\n\nconst strip = (html) => String(html || '').replace(/<[^>]*>/g, '').trim();\n\nconst wooBySku = {};\nwooProducts.forEach(p => { if (p.sku) wooBySku[p.sku] = p; });\n\nconst out = [];\nconst sheetSkus = new Set();\n\nfor (const row of sheetRows) {\n  const sku = String(row.sku || '').trim();\n\n  // IMPORTANT: invalid hole o SKU ta \"sheet e ache\" hishebe dhoro, jeno delete na hoy\n  if (sku) sheetSkus.add(sku);\n\n  const price = parseFloat(row.price);\n  const stock = parseInt(row.stock);\n\n  // Validation\n  if (!sku || isNaN(price) || isNaN(stock) || !row.name) {\n    out.push({ json: { action: 'invalid', sku, reason: 'Missing or invalid sku/name/price/stock', row_number: row.row_number } });\n    continue;\n  }\n\n  const existing = wooBySku[sku];\n  const data = {\n    sku,\n    name: row.name,\n    price: String(price),\n    stock,\n    description: row.description || '',\n    image_url: row.image_url || '',\n    row_number: row.row_number,\n  };\n\n  if (!existing) {\n    out.push({ json: { action: 'create', ...data } });\n  } else {\n    const changed =\n      String(existing.regular_price) !== String(price) ||\n      existing.stock_quantity !== stock ||\n      existing.name !== row.name ||\n      strip(existing.description) !== strip(row.description);\n\n    if (changed) out.push({ json: { action: 'update', id: existing.id, ...data } });\n  }\n}\n\n// Sheet e nai, kintu Woo te ache => delete\nfor (const p of wooProducts) {\n  if (p.sku && !sheetSkus.has(p.sku)) {\n    out.push({ json: { action: 'delete', id: p.id, sku: p.sku, name: p.name } });\n  }\n}\n\nreturn out;\n\nreturn out;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        752,
+        272
+      ],
+      "id": "b3cb8194-d18d-4693-93ae-2aacdb642ecd",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "create",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "43803e4b-c53f-4d5f-96f3-919bd8d4a269"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "create"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "50ecefc3-f217-458f-8dfc-cfe77067338f",
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "update",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "update"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "15ba3d00-2629-4fd1-93cb-a9ca7c42383a",
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "delete",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "delete"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "315d028a-12b8-4e7f-88a6-6b1fdb067309",
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "invalid",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "invalid"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        976,
+        240
+      ],
+      "id": "f953edb3-841b-43fc-bbc5-cde537e569f9",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "resource": "product",
+        "operation": "create",
+        "name": "={{ $('Switch').item.json.name }}",
+        "additionalFields": {
+          "description": "={{ $('Message a model').item.json.output[0].content[0].text }}",
+          "manageStock": true,
+          "regularPrice": "={{ $('Switch').item.json.price }}",
+          "sku": "={{ $('Switch').item.json.sku }}",
+          "stockQuantity": "={{ $('Switch').item.json.stock }}"
+        },
+        "dimensionsUi": {},
+        "imagesUi": {
+          "imagesValues": [
+            {
+              "alt": "={{ $json.alt_text }}",
+              "src": "={{ $json.source_url }}",
+              "name": "={{ $json.filename }}"
+            }
+          ]
+        },
+        "metadataUi": {}
+      },
+      "type": "n8n-nodes-base.wooCommerce",
+      "typeVersion": 1,
+      "position": [
+        2000,
+        -16
+      ],
+      "id": "01c40434-43f2-4877-ab9f-659d6684a304",
+      "name": "Create a product",
+      "credentials": {
+        "wooCommerceApi": {
+          "id": "REDACTED",
+          "name": "REDACTED"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "1h57jD5Y3HI_UEYzENOMk0L8cu6J11KtS1n3X4YHE9FU",
+          "mode": "list",
+          "cachedResultName": "Zenvio Products",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1h57jD5Y3HI_UEYzENOMk0L8cu6J11KtS1n3X4YHE9FU/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1h57jD5Y3HI_UEYzENOMk0L8cu6J11KtS1n3X4YHE9FU/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "sku": "={{ $('Switch').item.json.sku }}",
+            "description": "={{ $json.description }}",
+            "name": "={{ $('Switch').item.json.name }}",
+            "price": "={{ $('Switch').item.json.price }}",
+            "stock": "={{ $('Switch').item.json.stock }}",
+            "woo_id": "={{ $('Create a product').item.json.id }}",
+            "image_url": "={{ $('HTTP Request1').item.json.source_url }}"
+          },
+          "matchingColumns": [
+            "sku"
+          ],
+          "schema": [
+            {
+              "id": "sku",
+              "displayName": "sku",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "name",
+              "displayName": "name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "price",
+              "displayName": "price",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stock",
+              "displayName": "stock",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "description",
+              "displayName": "description",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "image_url",
+              "displayName": "image_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "woo_id",
+              "displayName": "woo_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        2224,
+        -16
+      ],
+      "id": "af4e7abe-2106-4a9b-9a57-321b0b9758c9",
+      "name": "Update row in sheet",
+      "alwaysOutputData": false,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "REDACTED",
+          "name": "REDACTED"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4.1-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4.1-MINI"
+        },
+        "responses": {
+          "values": [
+            {
+              "content": "=You are an ecommerce copywriter. Rewrite the product description below\ninto a clear, engaging description for an online store.\n\nRules:\n- 60-90 words, plain text, no emojis, no markdown\n- Start with the main benefit, then key features\n- Do not invent specs, materials, or claims that are not in the input\n- If the input is empty, write a short description using only the product name\n\nProduct name: {{ $('Switch').item.json.name }}\nCurrent description: {{ $('Switch').item.json.description }}"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.3,
+      "position": [
+        1200,
+        -16
+      ],
+      "id": "ceb83f6f-f3c8-48fb-b20d-04c11ab9f6be",
+      "name": "Message a model",
+      "credentials": {
+        "openAiApi": {
+          "id": "REDACTED",
+          "name": "REDACTED"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "product",
+        "operation": "update",
+        "productId": "={{ $json.id }}",
+        "updateFields": {
+          "description": "={{ $json.description }}",
+          "manageStock": true,
+          "name": "={{ $json.name }}",
+          "regularPrice": "={{ $json.price }}",
+          "sku": "={{ $json.sku }}",
+          "stockQuantity": "={{ $json.stock }}"
+        },
+        "dimensionsUi": {},
+        "imagesUi": {},
+        "metadataUi": {}
+      },
+      "type": "n8n-nodes-base.wooCommerce",
+      "typeVersion": 1,
+      "position": [
+        1264,
+        176
+      ],
+      "id": "ae7b4347-5715-450c-bd6e-83a9a1225843",
+      "name": "Update a product",
+      "credentials": {
+        "wooCommerceApi": {
+          "id": "REDACTED",
+          "name": "REDACTED"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "productId": "={{ $json.id }}"
+      },
+      "type": "n8n-nodes-base.wooCommerce",
+      "typeVersion": 1,
+      "position": [
+        1264,
+        368
+      ],
+      "id": "15eaed30-1ce7-480f-8ea7-c69610030fa2",
+      "name": "Delete a product",
+      "credentials": {
+        "wooCommerceApi": {
+          "id": "REDACTED",
+          "name": "REDACTED"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1h57jD5Y3HI_UEYzENOMk0L8cu6J11KtS1n3X4YHE9FU",
+          "mode": "list",
+          "cachedResultName": "Zenvio Products",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1h57jD5Y3HI_UEYzENOMk0L8cu6J11KtS1n3X4YHE9FU/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 900733615,
+          "mode": "list",
+          "cachedResultName": "error log",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1h57jD5Y3HI_UEYzENOMk0L8cu6J11KtS1n3X4YHE9FU/edit#gid=900733615"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "time": "={{ $now.toISO() }}",
+            "sku": "={{ $json.sku }}",
+            "reason": "={{ $json.reason }}",
+            "row_number": "={{ $json.row_number }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "time",
+              "displayName": "time",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "sku",
+              "displayName": "sku",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "reason",
+              "displayName": "reason",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1264,
+        560
+      ],
+      "id": "09ba7c22-f002-4a10-9847-33d9b5911339",
+      "name": "Append row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "REDACTED",
+          "name": "REDACTED"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "=https://gen.pollinations.ai/image/{{ encodeURIComponent($('Switch').item.json.name + \" product photography, clean studio background, professional ecommerce product image\") }}?model=flux",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer REDACTED"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        1552,
+        -16
+      ],
+      "id": "db087ad3-cb65-4966-8191-1bd215c2ca83",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://dev-zenvio.pantheonsite.io/wp-json/wp/v2/media",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Disposition",
+              "value": "attachment; filename=\"product-image.png\""
+            },
+            {
+              "name": "Content-Type",
+              "value": "image/png"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "binaryData",
+        "inputDataFieldName": "data",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        1776,
+        -16
+      ],
+      "id": "fce4ecc2-64e5-4b62-8eff-dc7c02cc8ffb",
+      "name": "HTTP Request1",
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "REDACTED",
+          "name": "REDACTED"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "order",
+        "operation": "getAll",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.wooCommerce",
+      "typeVersion": 1,
+      "position": [
+        1888,
+        1040
+      ],
+      "id": "a5f063fd-c8fa-4527-a14a-1dac5b6beadd",
+      "name": "Get many orders",
+      "credentials": {
+        "wooCommerceApi": {
+          "id": "REDACTED",
+          "name": "REDACTED"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "base": {
+          "__rl": true,
+          "value": "app5ZDTC4bjrNqnyX",
+          "mode": "list",
+          "cachedResultName": "invoices summary",
+          "cachedResultUrl": "https://airtable.com/app5ZDTC4bjrNqnyX"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblNuEKrxcRVku6dU",
+          "mode": "list",
+          "cachedResultName": "Sales Summary",
+          "cachedResultUrl": "https://airtable.com/app5ZDTC4bjrNqnyX/tblNuEKrxcRVku6dU"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Name": "={{ $json.report_type }}",
+            "Report Date": "={{ $now.toISODate() }}",
+            "Total Orders": "={{ $json.total_orders }}",
+            "Total Sales": "={{ $json.total_sales }}",
+            "Total Tax": "={{ $json.total_tax_collected }}",
+            "Total Items Sold": "={{ $json.total_items_sold }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Name",
+              "displayName": "Name",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Report Date",
+              "displayName": "Report Date",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Total Orders",
+              "displayName": "Total Orders",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Total Sales",
+              "displayName": "Total Sales",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Total Tax",
+              "displayName": "Total Tax",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Total Items Sold",
+              "displayName": "Total Items Sold",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        2336,
+        1040
+      ],
+      "id": "ed2f9229-e3a4-43f9-a203-407056b2650e",
+      "name": "Create a record",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "REDACTED",
+          "name": "REDACTED"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {}
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        64,
+        1024
+      ],
+      "id": "db70105a-8970-4195-9f00-c13b171e7c85",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "resource": "order",
+        "operation": "getAll",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.wooCommerce",
+      "typeVersion": 1,
+      "position": [
+        288,
+        1024
+      ],
+      "id": "ed80a113-c686-498a-bf11-a6175274f938",
+      "name": "Get many orders1",
+      "credentials": {
+        "wooCommerceApi": {
+          "id": "REDACTED",
+          "name": "REDACTED"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst orders = $input.all().map(item => item.json);\n\nconst validOrders = orders.filter(order =>\n  !['cancelled', 'failed', 'trash'].includes(order.status)\n);\n\nlet totalSales = 0;\nlet totalTax = 0;\nlet totalItemsSold = 0;\nlet totalRefunds = 0;\n\nconst productSales = {};\nconst customerOrders = {};\n\nfor (const order of validOrders) {\n  totalSales += Number(order.total || 0);\n  totalTax += Number(order.total_tax || 0);\n\n  for (const product of order.line_items || []) {\n    const qty = Number(product.quantity || 0);\n    totalItemsSold += qty;\n\n    const name = product.name || 'Unknown Product';\n    productSales[name] = (productSales[name] || 0) + qty;\n  }\n\n  const customerId = order.customer_id\n    ? `customer_${order.customer_id}`\n    : `guest_${order.billing?.email || order.id}`;\n\n  customerOrders[customerId] =\n    (customerOrders[customerId] || 0) + 1;\n\n  for (const refund of order.refunds || []) {\n    totalRefunds += Math.abs(Number(refund.total || 0));\n  }\n}\n\nconst bestSellingProduct = Object.entries(productSales)\n  .sort((a, b) => b[1] - a[1])[0];\n\nconst customerCounts = Object.values(customerOrders);\n\nreturn [{\n  json: {\n    report_date: $now.toISODate(),\n    total_orders: validOrders.length,\n    total_sales: Number(totalSales.toFixed(2)),\n    total_tax_collected: Number(totalTax.toFixed(2)),\n    total_items_sold: totalItemsSold,\n    best_selling_product: bestSellingProduct\n      ? bestSellingProduct[0]\n      : 'No sales',\n    new_vs_returning_customers: {\n      unique_customers: customerCounts.length,\n      repeat_customers: customerCounts.filter(count => count > 1).length\n    },\n    total_refunds: Number(totalRefunds.toFixed(2)),\n    invoice_links: validOrders.map(order => ({\n      order_id: order.id,\n      invoice_url: order.invoice_url || null\n    }))\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        512,
+        1024
+      ],
+      "id": "502fe73c-a00e-4626-b303-9fcf741f1b8b",
+      "name": "Code in JavaScript1"
+    },
+    {
+      "parameters": {
+        "sendTo": "sarkarefad336@gmail.com",
+        "subject": "=WooCommerce Sales Report - {{ $json.report_date }}",
+        "message": "=\n<div style=\"margin:0;padding:30px 12px;background:#eef2f8;font-family:Arial,Helvetica,sans-serif;color:#172033;\">\n  <div style=\"max-width:680px;margin:0 auto;background:#ffffff;border-radius:16px;overflow:hidden;\">\n\n    <div style=\"padding:30px 28px;background:#111827;background-image:linear-gradient(120deg,#111827,#312e81);color:#ffffff;\">\n      <div style=\"font-size:12px;letter-spacing:2px;color:#a5b4fc;font-weight:bold;\">ZENVIO · BUSINESS INTELLIGENCE</div>\n      <h1 style=\"font-size:27px;line-height:1.3;margin:18px 0 8px;\">Sales Performance Report</h1>\n      <p style=\"margin:0;color:#d1d5db;font-size:14px;\">Your store performance, summarized.</p>\n      <div style=\"margin-top:22px;padding:10px 14px;display:inline-block;background:#ffffff18;border:1px solid #ffffff30;border-radius:8px;font-size:13px;\">\n        Report date: {{ $json.report_date }}\n      </div>\n    </div>\n\n    <div style=\"padding:26px 22px 10px;\">\n      <h2 style=\"font-size:17px;margin:0 0 18px;color:#111827;\">Performance Overview</h2>\n\n      <table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"border-collapse:separate;border-spacing:7px;\">\n        <tr>\n          <td width=\"50%\" style=\"background:#eef2ff;border-radius:12px;padding:18px 15px;border:1px solid #e0e7ff;\">\n            <div style=\"font-size:11px;color:#4f46e5;font-weight:bold;letter-spacing:1px;\">TOTAL SALES</div>\n            <div style=\"font-size:27px;font-weight:bold;color:#1e1b4b;margin-top:10px;\">৳{{ $json.total_sales }}</div>\n          </td>\n          <td width=\"50%\" style=\"background:#ecfdf5;border-radius:12px;padding:18px 15px;border:1px solid #d1fae5;\">\n            <div style=\"font-size:11px;color:#047857;font-weight:bold;letter-spacing:1px;\">TOTAL ORDERS</div>\n            <div style=\"font-size:27px;font-weight:bold;color:#064e3b;margin-top:10px;\">{{ $json.total_orders }}</div>\n          </td>\n        </tr>\n        <tr>\n          <td width=\"50%\" style=\"background:#f5f3ff;border-radius:12px;padding:18px 15px;border:1px solid #ede9fe;\">\n            <div style=\"font-size:11px;color:#7c3aed;font-weight:bold;letter-spacing:1px;\">TAX COLLECTED</div>\n            <div style=\"font-size:25px;font-weight:bold;color:#4c1d95;margin-top:10px;\">৳{{ $json.total_tax_collected }}</div>\n          </td>\n          <td width=\"50%\" style=\"background:#fff7ed;border-radius:12px;padding:18px 15px;border:1px solid #ffedd5;\">\n            <div style=\"font-size:11px;color:#c2410c;font-weight:bold;letter-spacing:1px;\">ITEMS SOLD</div>\n            <div style=\"font-size:27px;font-weight:bold;color:#7c2d12;margin-top:10px;\">{{ $json.total_items_sold }}</div>\n          </td>\n        </tr>\n      </table>\n    </div>\n\n    <div style=\"padding:18px 29px 10px;\">\n      <h2 style=\"font-size:17px;color:#111827;margin:0 0 15px;\">Store Insights</h2>\n      <table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"border-collapse:collapse;font-size:14px;\">\n        <tr>\n          <td style=\"padding:13px 0;border-bottom:1px solid #e5e7eb;color:#64748b;\">Best-selling product</td>\n          <td style=\"padding:13px 0;border-bottom:1px solid #e5e7eb;text-align:right;font-weight:bold;color:#111827;\">{{ $json.best_selling_product }}</td>\n        </tr>\n        <tr>\n          <td style=\"padding:13px 0;border-bottom:1px solid #e5e7eb;color:#64748b;\">Unique customers</td>\n          <td style=\"padding:13px 0;border-bottom:1px solid #e5e7eb;text-align:right;font-weight:bold;color:#111827;\">{{ $json.new_vs_returning_customers.unique_customers }}</td>\n        </tr>\n        <tr>\n          <td style=\"padding:13px 0;border-bottom:1px solid #e5e7eb;color:#64748b;\">Repeat customers</td>\n          <td style=\"padding:13px 0;border-bottom:1px solid #e5e7eb;text-align:right;font-weight:bold;color:#111827;\">{{ $json.new_vs_returning_customers.repeat_customers }}</td>\n        </tr>\n        <tr>\n          <td style=\"padding:13px 0;color:#64748b;\">Total refunds</td>\n          <td style=\"padding:13px 0;text-align:right;font-weight:bold;color:#dc2626;\">৳{{ $json.total_refunds }}</td>\n        </tr>\n      </table>\n    </div>\n\n    <div style=\"margin:22px 28px;padding:17px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;\">\n      <div style=\"font-size:13px;font-weight:bold;color:#334155;\">Invoice records</div>\n      <p style=\"font-size:12px;line-height:1.7;color:#64748b;margin:8px 0 0;\">\n        This report contains {{ $json.invoice_links.length }} order records. Open your WooCommerce dashboard to review invoices.\n      </p>\n    </div>\n\n    <div style=\"padding:22px 28px;background:#111827;color:#9ca3af;text-align:center;font-size:11px;line-height:1.8;\">\n      <strong style=\"color:#ffffff;letter-spacing:1px;\">ZENVIO</strong><br>\n      Automated Sales Intelligence · Powered by n8n<br>\n      This is an automatically generated report.\n    </div>\n\n  </div>\n</div>\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        736,
+        1024
+      ],
+      "id": "6758b7f0-111a-427b-b9aa-879c87266414",
+      "name": "Send a message",
+      "webhookId": "3a797ece-920b-4620-b0cc-fecc735420fc",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "REDACTED",
+          "name": "REDACTED"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst orders = $input.all().map(item => item.json);\n\nlet totalSales = 0;\nlet totalTax = 0;\nlet totalItemsSold = 0;\n\nfor (const order of orders) {\n  // Cancelled ও failed orders sales হিসেবে ধরব না\n  if (['cancelled', 'failed', 'trash'].includes(order.status)) {\n    continue;\n  }\n\n  totalSales += Number(order.total || 0);\n  totalTax += Number(order.total_tax || 0);\n\n  for (const product of (order.line_items || [])) {\n    totalItemsSold += Number(product.quantity || 0);\n  }\n}\n\nreturn [{\n  json: {\n    report_type: 'Sales Summary',\n    generated_at: new Date().toISOString(),\n    total_orders: orders.length,\n    total_sales: Number(totalSales.toFixed(2)),\n    total_tax_collected: Number(totalTax.toFixed(2)),\n    total_items_sold: totalItemsSold\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2112,
+        1040
+      ],
+      "id": "3d2667e9-8bd6-4304-9b13-7037dd1d9251",
+      "name": "Code in JavaScript2"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        80,
+        272
+      ],
+      "id": "a8343924-f55c-45de-9f91-3b43ad5ccf2f",
+      "name": "clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {}
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        1664,
+        1040
+      ],
+      "id": "dd9603d9-8ba9-4394-8aa9-14978e64c7d0",
+      "name": "Schedule Trigger1"
+    },
+    {
+      "parameters": {
+        "content": "## Invoices and sales summary",
+        "height": 384,
+        "width": 1072
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1552,
+        896
+      ],
+      "typeVersion": 1,
+      "id": "0efde4b7-cc42-4067-8638-751015164aca",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "## Admin report",
+        "height": 352,
+        "width": 1072
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -32,
+        896
+      ],
+      "typeVersion": 1,
+      "id": "8db153bb-6c10-411d-b4dc-77343b1d9f8f",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "## Product add, update, delete",
+        "height": 896,
+        "width": 2688
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -48,
+        -112
+      ],
+      "typeVersion": 1,
+      "id": "c34ac0c0-2d25-4d80-bc3b-eadfc7fea70d",
+      "name": "Sticky Note2"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Get Sheet Products": {
+      "main": [
+        [
+          {
+            "node": "Get many products",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get many products": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Message a model",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Update a product",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Delete a product",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create a product": {
+      "main": [
+        [
+          {
+            "node": "Update row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message a model": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request1": {
+      "main": [
+        [
+          {
+            "node": "Create a product",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get many orders": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get many orders1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get many orders1": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript1": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript2": {
+      "main": [
+        [
+          {
+            "node": "Create a record",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Get Sheet Products",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger1": {
+      "main": [
+        [
+          {
+            "node": "Get many orders",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "d5fc2152-2ff6-4108-a2de-49699959739c",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "REDACTED_LONG_HEX_SECRET"
+  },
+  "nodeGroups": [],
+  "id": "7BXuKxJ2GyQSIUFa",
+  "tags": []
+}

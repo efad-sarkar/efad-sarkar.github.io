@@ -1,0 +1,165 @@
+{
+  "name": "03 - AI Campaign Performance Reporting (Webhook)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "campaign-performance-report",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "759375d1-6229-43e5-bbb5-625bc210b852",
+      "name": "Campaign Data Webhook",
+      "webhookId": "7d9301c5-45eb-402a-97a9-bac951f57f8f"
+    },
+    {
+      "parameters": {
+        "jsCode": "const b=$json.body??$json;\nconst rows=Array.isArray(b.campaigns)?b.campaigns:[b];\nif(!rows.length) throw new Error(\"Provide at least one campaign in campaigns[].\");\nconst reportEmail=String(b.report_email??\"\").trim();\nconst campaigns=rows.map((r,i)=>{\n  const impressions=Number(r.impressions);\n  const clicks=Number(r.clicks);\n  const conversions=Number(r.conversions);\n  const spend=Number(r.spend);\n  const revenue=r.revenue===undefined?null:Number(r.revenue);\n  if(![impressions,clicks,conversions,spend].every(Number.isFinite) || impressions<0 || clicks<0 || conversions<0 || spend<0) {\n    throw new Error(`Campaign ${i+1} has missing or invalid numeric metrics.`);\n  }\n  if(clicks>impressions) throw new Error(`Campaign ${i+1}: clicks cannot exceed impressions.`);\n  if(conversions>clicks) throw new Error(`Campaign ${i+1}: conversions cannot exceed clicks.`);\n  return {\n    campaign_name:String(r.campaign_name??`Campaign ${i+1}`),\n    platform:String(r.platform??\"Not specified\"),\n    impressions,clicks,conversions,spend,\n    revenue,\n    ctr_percent:impressions?Number((clicks/impressions*100).toFixed(2)):0,\n    conversion_rate_percent:clicks?Number((conversions/clicks*100).toFixed(2)):0,\n    cpa:conversions?Number((spend/conversions).toFixed(2)):null,\n    cpm:impressions?Number((spend/impressions*1000).toFixed(2)):null,\n    roas:revenue!==null&&spend>0?Number((revenue/spend).toFixed(2)):null\n  };\n});\nreturn [{json:{report_email:reportEmail,report_period:String(b.report_period??\"Not specified\"),currency:String(b.currency??\"USD\"),campaigns}}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        0
+      ],
+      "id": "af69853a-b7e3-4d2e-b558-61562d6782a3",
+      "name": "Validate Data & Calculate KPIs"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://openrouter.ai/api/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer REDACTED"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "HTTP-Referer",
+              "value": "https://your-portfolio.example"
+            },
+            {
+              "name": "X-Title",
+              "value": "AI Automation Portfolio Demo"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {model:'nvidia/nemotron-3.5-super-vl:free',temperature:0.2,response_format:{type:'json_object'},messages:[{role:'system',content:'You are a marketing performance analyst. Analyze only supplied metrics. Do not invent benchmarks, causes, or missing data. Return valid JSON.'},{role:'user',content:'Analyze these campaign results. Return JSON with executive_summary (string), campaign_insights (array of objects with campaign_name, observation, recommendation), risks (array), next_actions (array), data_limitations (array). Mention that correlation does not prove causation. Data: '+JSON.stringify($json)}]} }}",
+        "options": {
+          "timeout": 120000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        480,
+        0
+      ],
+      "id": "848d368a-cec1-440b-b035-de0a34013ebb",
+      "name": "LLM - Analyze Campaign Performance"
+    },
+    {
+      "parameters": {
+        "jsCode": "function parseContent(value){\n if(typeof value!==\"string\") return value;\n return JSON.parse(value.trim().replace(/^```(?:json)?\\s*/i,\"\").replace(/\\s*```$/,\"\"));\n}\nconst content=$json.choices?.[0]?.message?.content;\nif(!content) throw new Error(\"No AI analysis returned.\");\nconst analysis=parseContent(Array.isArray(content)?content.map(x=>x.text??\"\").join(\"\\n\"):content);\nconst source=$(\"Validate Data & Calculate KPIs\").first().json;\nfor(const key of [\"executive_summary\",\"campaign_insights\",\"risks\",\"next_actions\",\"data_limitations\"]){\n if(analysis[key]===undefined) throw new Error(`AI report missing ${key}`);\n}\nreturn [{json:{\n success:true,\n report_period:source.report_period,\n currency:source.currency,\n campaigns:source.campaigns,\n analysis,\n generated_at:new Date().toISOString(),\n disclaimer:\"AI-generated observations are decision support, not proof of causation. Verify platform attribution and tracking before making budget decisions.\"\n}}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        720,
+        0
+      ],
+      "id": "d62cbbda-d87f-4063-b968-7dbf2f7fcd04",
+      "name": "Validate & Assemble Performance Report"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        960,
+        0
+      ],
+      "id": "2a14bbd9-20e2-4371-b59e-fa9c6b4c7f70",
+      "name": "Return Performance Report"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Campaign Data Webhook": {
+      "main": [
+        [
+          {
+            "node": "Validate Data & Calculate KPIs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Data & Calculate KPIs": {
+      "main": [
+        [
+          {
+            "node": "LLM - Analyze Campaign Performance",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LLM - Analyze Campaign Performance": {
+      "main": [
+        [
+          {
+            "node": "Validate & Assemble Performance Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate & Assemble Performance Report": {
+      "main": [
+        [
+          {
+            "node": "Return Performance Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "db963594-10ef-4da0-b602-f716052a2133",
+  "meta": {
+    "instanceId": "REDACTED_LONG_HEX_SECRET"
+  },
+  "nodeGroups": [],
+  "id": "c8PD3yyPBB0rr337",
+  "tags": []
+}

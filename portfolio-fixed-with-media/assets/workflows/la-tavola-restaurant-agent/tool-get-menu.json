@@ -1,0 +1,133 @@
+{
+  "name": "Tool - get_menu",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "get-menu",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.2,
+      "position": [
+        -64,
+        304
+      ],
+      "id": "78d79c87-273a-4b39-a607-3b1d3afbc2d9",
+      "name": "Webhook",
+      "webhookId": "6505c95e-d1bd-4012-96d4-f1c6af32ba78"
+    },
+    {
+      "parameters": {
+        "operation": "search",
+        "base": {
+          "__rl": true,
+          "value": "appuiLzWzGaHSTe5k",
+          "mode": "list",
+          "cachedResultName": "Restaurant",
+          "cachedResultUrl": "https://airtable.com/appuiLzWzGaHSTe5k"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblvtcpuiyIuUJaJI",
+          "mode": "list",
+          "cachedResultName": "Menu",
+          "cachedResultUrl": "https://airtable.com/appuiLzWzGaHSTe5k/tblvtcpuiyIuUJaJI"
+        },
+        "filterByFormula": "{Available}=1",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        160,
+        304
+      ],
+      "id": "37033d31-1f25-49e6-b648-4ae4eee7c365",
+      "name": "Get Menu",
+      "alwaysOutputData": true,
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "REDACTED",
+          "name": "REDACTED"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $('Webhook').first().json.body || {};\nconst wanted = String(body.category || '').trim().toLowerCase().replace(/s$/, '');\n\nlet items = $input.all()\n  .map(i => {\n    const f = i.json.fields ?? i.json;\n    return {\n      item: f['Item'],\n      category: f['Category'],\n      price: f['Price'],\n      description: f['Description'],\n    };\n  })\n  .filter(x => x.item);\n\nif (wanted) {\n  const filtered = items.filter(x => String(x.category || '').toLowerCase().includes(wanted));\n  if (filtered.length) items = filtered;\n}\n\nreturn [{ json: { count: items.length, menu: items } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        384,
+        304
+      ],
+      "id": "3da7b4ec-e454-4f17-8f1f-9625875bda8d",
+      "name": "Format Menu"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        608,
+        304
+      ],
+      "id": "e29fb549-d0f7-432f-8025-faba05407148",
+      "name": "Respond to Webhook"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Get Menu",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Menu": {
+      "main": [
+        [
+          {
+            "node": "Format Menu",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Menu": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "6025259b-3fe8-412b-9e8c-01c9be381f06",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "REDACTED_LONG_HEX_SECRET"
+  },
+  "nodeGroups": [],
+  "id": "NYcTItxt2ET74MW6",
+  "tags": []
+}
