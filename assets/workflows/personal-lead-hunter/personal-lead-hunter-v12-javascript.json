@@ -1,0 +1,1575 @@
+{
+  "name": "Personal Lead Hunter v12 - JavaScript converted",
+  "nodes": [
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "19zLOoP811uRWMgCpllLb9uM3525MH6WC6cy9veepIdE",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Leads",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": []
+        },
+        "options": {
+          "cellFormat": "RAW"
+        }
+      },
+      "id": "35c68031-96c8-47ee-ab9e-f7362120feac",
+      "name": "Save to Leads Sheet1",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        -304,
+        0
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "REDACTED",
+          "name": "REDACTED"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 9
+            }
+          ]
+        }
+      },
+      "id": "ea0487d7-bbf7-49d8-b988-09c0ea408cff",
+      "name": "Daily 9AM Trigger1",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -368,
+        -448
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "2d593481-210d-4512-b920-2b9b8568b7c3",
+              "name": "myName",
+              "value": "Efad Sarkar",
+              "type": "string"
+            },
+            {
+              "id": "2ad95212-012b-44ba-b288-8ea7ea527349",
+              "name": "whatsapp",
+              "value": "+8801975024692",
+              "type": "string"
+            },
+            {
+              "id": "cd3d10a8-5db2-4826-bdbe-2a8e55b54fb2",
+              "name": "model",
+              "value": "gemini-flash-latest",
+              "type": "string"
+            },
+            {
+              "id": "7c1f0b52-3a1e-4d57-9b0e-0a1c2d3e4f50",
+              "name": "postalAddress",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "9d2e1c63-4b2f-4e68-8c1f-1b2d3e4f5a61",
+              "name": "testEmail",
+              "value": "",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "87563c73-5907-4c4c-a4e0-44152130da12",
+      "name": "Settings1",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -144,
+        -448
+      ]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "19zLOoP811uRWMgCpllLb9uM3525MH6WC6cy9veepIdE",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Leads",
+          "mode": "name"
+        },
+        "options": {}
+      },
+      "id": "edf324a0-b888-4e9a-8a8f-97e1664c8419",
+      "name": "Read Existing Leads1",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "alwaysOutputData": true,
+      "position": [
+        80,
+        -448
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "REDACTED",
+          "name": "REDACTED"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const NICHES = [\n{niche:\"hair stylist or barber\",tags:[[\"shop\",\"hairdresser\"]]},\n{niche:\"nail and beauty studio\",tags:[[\"shop\",\"beauty\"]]},\n{niche:\"florist\",tags:[[\"shop\",\"florist\"]]},\n{niche:\"home bakery\",tags:[[\"shop\",\"bakery\"],[\"shop\",\"pastry\"]]},\n{niche:\"pet groomer\",tags:[[\"shop\",\"pet_grooming\"]]},\n{niche:\"tattoo artist\",tags:[[\"shop\",\"tattoo\"]]},\n{niche:\"massage therapist\",tags:[[\"shop\",\"massage\"]]},\n{niche:\"photographer\",tags:[[\"craft\",\"photographer\"]]},\n{niche:\"yoga teacher\",tags:[[\"sport\",\"yoga\"]]},\n{niche:\"personal trainer\",tags:[[\"leisure\",\"fitness_centre\"]]}\n];\nconst CITIES = [\n{c:\"Austin, USA\",l:\"English\",lat:30.2672,lon:-97.7431},{c:\"Bristol, UK\",l:\"English\",lat:51.4545,lon:-2.5879},\n{c:\"Nantes, France\",l:\"French\",lat:47.2184,lon:-1.5536},{c:\"Brisbane, Australia\",l:\"English\",lat:-27.4698,lon:153.0251},\n{c:\"Denver, USA\",l:\"English\",lat:39.7392,lon:-104.9903},{c:\"Leeds, UK\",l:\"English\",lat:53.8008,lon:-1.5491},\n{c:\"Toulouse, France\",l:\"French\",lat:43.6047,lon:1.4442},{c:\"Perth, Australia\",l:\"English\",lat:-31.9505,lon:115.8605},\n{c:\"Nashville, USA\",l:\"English\",lat:36.1627,lon:-86.7816},{c:\"Glasgow, UK\",l:\"English\",lat:55.8642,lon:-4.2518},\n{c:\"Bordeaux, France\",l:\"French\",lat:44.8378,lon:-0.5792},{c:\"Adelaide, Australia\",l:\"English\",lat:-34.9285,lon:138.6007},\n{c:\"Portland, USA\",l:\"English\",lat:45.5152,lon:-122.6784},{c:\"Sheffield, UK\",l:\"English\",lat:53.3811,lon:-1.4701},\n{c:\"Lille, France\",l:\"French\",lat:50.6292,lon:3.0573}\n];\nconst PER_DAY=3, day=Math.floor(Date.now()/86400000), rows=[];\nfor(let k=0;k<PER_DAY;k++){\n const i=day*PER_DAY+k, n=NICHES[i%NICHES.length], c=CITIES[Math.floor(i/NICHES.length)%CITIES.length];\n const cycle=Math.floor(i/(NICHES.length*CITIES.length)), radius=Math.min(20000+cycle*10000,50000), lines=[];\n for(const [key,val] of n.tags) for(const extra of [\"website\",\"contact:website\",\"email\",\"contact:email\",\"contact:instagram\"])\n  lines.push(`  nwr(around:${radius},${c.lat},${c.lon})[\"${key}\"=\"${val}\"][\"${extra}\"];`);\n const q=\"[out:json][timeout:60];\\n(\\n\"+lines.join(\"\\n\")+\"\\n);\\nout tags center 250;\";\n rows.push({niche:n.niche,city:c.c,language:c.l,radius,overpassQuery:q,query:n.niche+\" near \"+c.c});\n}\nreturn rows.map(json=>({json}));"
+      },
+      "id": "474f77ce-d848-49f4-ad30-045fae9abd0f",
+      "name": "Pick Searches1",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        304,
+        -448
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://overpass-api.de/api/interpreter",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "User-Agent",
+              "value": "PersonalLeadHunter/1.0"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "data",
+              "value": "={{ $json.overpassQuery }}"
+            }
+          ]
+        },
+        "options": {
+          "batching": {
+            "batch": {
+              "batchSize": 1,
+              "batchInterval": 4000
+            }
+          },
+          "timeout": 120000
+        }
+      },
+      "id": "eef5948b-9d92-4387-9997-9af1a17739f7",
+      "name": "Search OpenStreetMap (Overpass)1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        528,
+        -448
+      ],
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 10000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const S=v=>v==null?\"\":String(v), all=n=>$(n).all().map(x=>x.json);\nconst picks=all(\"Pick Searches1\"), existing=all(\"Read Existing Leads1\"), seenIds=new Set(existing.map(r=>S(r[\"Place ID\"]))), seen=new Set(), seenHosts=new Set(), out=[];\nconst SKIP_HOSTS=[\"google.com\",\"linktr.ee\",\"fresha.com\",\"booksy.com\",\"yelp.com\",\"wixsite.com\",\"quicksell.co\",\"vagaro.com\",\"square.site\",\"setmore.com\",\"nhs.uk\",\"supercuts.com\",\"greatclips.com\",\"sportclips.com\",\"petco.com\",\"petsmart.com\",\"orangetheory.com\",\"f45training.com\",\"puregym.com\",\"thegymgroup.com\",\"anytimefitness.com\",\"planetfitness.com\"];\nconst SOCIAL=[\"facebook.com\",\"instagram.com\",\"linkedin.com\",\"twitter.com\",\"x.com\",\"youtube.com\",\"tiktok.com\",\"wa.me\"];\nconst CHAIN_WORDS=/\\b(franchise|group|chain|holdings|inc\\.|ltd\\.|llc|plc)\\b/i;\nconst first=v=>S(v).split(/[;,]/)[0].trim();\nconst hostOf=u=>S(u).replace(/^https?:\\/\\//i,\"\").split(/[/?#:]/)[0].replace(/^www\\./i,\"\").toLowerCase();\nconst normSite=u=>{u=first(u);return !u?\"\":/^https?:\\/\\//i.test(u)?u:\"http://\"+u};\nconst normSocial=(v,b)=>{v=first(v);return !v?\"\":/^https?:\\/\\//i.test(v)?v:b+v.replace(/^[@/]+/,\"\")};\nfunction refine(niche,name,tags){const nm=name.toLowerCase();\n if(niche===\"hair stylist or barber\")return (/barber/i.test(nm)||tags.hairdresser===\"barber\")?\"barber\":\"hair stylist\";\n if(niche===\"nail and beauty studio\"){if(/nail|manicure/i.test(nm)||tags.beauty===\"nails\")return \"nail technician\";if(/lash|brow/i.test(nm)||[\"eyelash\",\"eyebrow\"].includes(tags.beauty))return \"lash and brow artist\";if(/make-?up|\\bmua\\b/i.test(nm))return \"makeup artist\";return \"beauty studio\";}\n return niche;\n}\nfor(let idx=0;idx<$input.all().length;idx++){\n const resp=$input.all()[idx].json, pick=picks[idx]||picks[0]||{};\n for(const el of resp.elements||[]){\n  const tags=el.tags||{}, name=S(tags.name).trim(); if(!name||!el.id)continue;\n  const pid=`osm-${el.type||\"x\"}-${el.id}`; if(seenIds.has(pid)||seen.has(pid))continue;\n  if(tags.brand||tags[\"brand:wikidata\"]||tags[\"operator:wikidata\"]||tags.network||CHAIN_WORDS.test(name))continue;\n  let website=normSite(tags.website||tags[\"contact:website\"]||tags.url);\n  let instagram=normSocial(tags[\"contact:instagram\"],\"https://instagram.com/\"), facebook=normSocial(tags[\"contact:facebook\"],\"https://facebook.com/\");\n  let wh=hostOf(website);\n  if(wh.endsWith(\"instagram.com\")){instagram=instagram||website;website=\"\";}\n  else if(wh.endsWith(\"facebook.com\")){facebook=facebook||website;website=\"\";}\n  else if(wh&&SOCIAL.some(h=>wh===h||wh.endsWith(\".\"+h)))website=\"\";\n  const host=hostOf(website);\n  if(host&&SKIP_HOSTS.some(h=>host===h||host.endsWith(\".\"+h)))continue;\n  if(host&&seenHosts.has(host))continue;\n  const osmEmails=[];\n  for(let e of (S(tags.email)+\";\"+S(tags[\"contact:email\"])).split(/[;,\\s]+/)){e=e.replace(/^mailto:/i,\"\").trim().toLowerCase();if(e.includes(\"@\")&&!osmEmails.includes(e))osmEmails.push(e);}\n  if(!website&&!osmEmails.length&&!instagram)continue;\n  if(host)seenHosts.add(host);seen.add(pid);\n  const address=[tags[\"addr:housenumber\"],tags[\"addr:street\"],tags[\"addr:city\"]].map(S).filter(Boolean).join(\" \");\n  out.push({placeId:pid,businessName:name,niche:refine(pick.niche||\"\",name,tags),city:pick.city||\"\",language:pick.language||\"English\",address,phone:S(tags.phone||tags[\"contact:phone\"]),website,contactUrl:host?\"https://\"+host+\"/contact\":\"https://example.invalid\",instagram,facebook,osmEmails});\n }\n}\nreturn out.slice(0,60).map(json=>({json}));"
+      },
+      "id": "2167fb5a-ccfd-48e4-9249-f6fc7e0618ed",
+      "name": "Filter New Places1",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        752,
+        -448
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.website || 'https://example.invalid' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "User-Agent",
+              "value": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true,
+              "responseFormat": "text"
+            }
+          },
+          "timeout": 10000
+        }
+      },
+      "id": "a56bf245-b1c4-4a01-ad79-783150f6caa3",
+      "name": "Fetch Website1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        976,
+        -448
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const S=v=>v==null?\"\":String(v), all=n=>$(n).all().map(x=>x.json);\nconst leads=all(\"Filter New Places1\"), homeItems=all(\"Fetch Website1\"), contactItems=$input.all().map(x=>x.json);\nconst existing=new Set(all(\"Read Existing Leads1\").map(r=>S(r.Email).toLowerCase())), settings=all(\"Settings1\")[0]||{}, test=S(settings.testEmail).trim(), year=new Date().getUTCFullYear();\nconst FREEMAIL=/^(gmail|googlemail|outlook|hotmail|live|yahoo|ymail|icloud|me|proton|protonmail|aol|orange|free|laposte|wanadoo|sfr|btinternet|sky|bigpond|optusnet)\\./i;\nconst JUNK_DOMAIN=/(?:^|\\.)(?:wix|wixpress|squarespace|weebly|godaddy|shopify|wordpress|automattic|cloudflare|sentry|sentry-next|google|gstatic|facebook|instagram|schema|w3|jquery|bootstrap|fontawesome|mailchimp|hubspot|calendly|fresha|booksy|setmore|square|stripe|paypal|example|domain|yourdomain|sitelock|gravatar|akismet|elementor|yoast|youremail|email)\\./i;\nconst JUNK_LOCAL=/^(noreply|no-reply|donotreply|do-not-reply|mailer-daemon|postmaster|abuse|webmaster|hostmaster|privacy|legal|gdpr|dpo|unsubscribe|bounce|user|name|yourname|you|test|sample|john\\.?doe|jane\\.?doe|email|filler|someone)$/i;\nconst BAD_TLD=/\\.(png|jpe?g|gif|svg|webp|css|js|woff2?|ico|pdf|mp4|html?)$/i;\nconst EMAIL_RE=/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,10}/g;\nconst VALID_RE=/^[a-z0-9._%+-]{2,64}@[a-z0-9-]+(\\.[a-z0-9-]+)*\\.[a-z]{2,10}$/i, ROLE_RE=/^(hello|hi|info|contact|book|booking|bookings|enquiries|enquiry|studio|shop|office|admin|team)@/i;\nfunction decode(s){return S(s).replace(/\\\\u003[ce]/gi,\" \").replace(/\\\\u0026/gi,\" \").replace(/\\\\u0040/gi,\"@\").replace(/&#64;|&#x40;|&commat;|%40|\\s?\\[at\\]\\s?|\\s?\\(at\\)\\s?/gi,\"@\").replace(/&#46;|&#x2e;|\\s?\\[dot\\]\\s?|\\s?\\(dot\\)\\s?/gi,\".\").replace(/%[0-9a-f]{2}/gi,\" \").replace(/&[a-z]+;/gi,\" \");}\nfunction rootOf(h){const p=S(h).split(\".\");const sl=p.length>=3&&[\"co\",\"com\",\"org\",\"net\",\"gov\",\"ac\"].includes(p[p.length-2])&&p[p.length-1].length===2?3:2;return p.slice(-sl).join(\".\");}\nconst stripTags=s=>S(s).replace(/<[^>]+>/g,\" \").replace(/\\s+/g,\" \").trim(), hostOf=u=>S(u).replace(/^https?:\\/\\//i,\"\").split(/[/?#:]/)[0].replace(/^www\\./i,\"\").toLowerCase();\nconst out=[], seenE=new Set();\nfor(let i=0;i<contactItems.length;i++){\n const lead=leads[i];if(!lead)continue;\n const h1=typeof homeItems[i]?.data===\"string\"?homeItems[i].data:\"\",h2=typeof contactItems[i]?.data===\"string\"?contactItems[i].data:\"\",home=decode(h1),contact=decode(h2);\n const hasSite=!!lead.website, osm=lead.osmEmails||[];let signal=\"no website\",top=null;\n if(hasSite){if(!h1.trim()&&!osm.length)continue;const years=[...h1.matchAll(/(?:©|&copy;|&#169;|copyright)(.{0,80})/gis)].flatMap(m=>[...m[1].matchAll(/(?:19|20)\\d{2}/g)].map(x=>+x[0]));top=years.length?Math.max(...years):null;if(top!==null&&top<year-1)continue;signal=h1.trim()?\"site up\":\"site down (OSM email)\";if(top!==null)signal+=\", footer \"+top;}\n const siteRoot=lead.website?rootOf(hostOf(lead.website)):\"\", cand={};\n function add(raw,score,src){let e=S(raw).toLowerCase().trim().replace(/^[^a-z0-9]+/,\"\").replace(/[.,;:)\\]>'\"]+$/,\"\").replace(/^(u003[ce]|u0026|x3e|x3c|3e|3c)(?=[a-z0-9._%+-]+@)/,\"\");if(!VALID_RE.test(e))return;\n  const [local,dom]=e.split(\"@\");if(BAD_TLD.test(e)||JUNK_DOMAIN.test(dom+\".\")||JUNK_LOCAL.test(local)||/\\d{6,}/.test(local)||/^\\d/.test(dom))return;\n  const own=!!siteRoot&&rootOf(dom)===siteRoot,free=FREEMAIL.test(dom+\".\");if(!own&&!free&&src!==\"osm\")return;\n  const scoreFinal=score+(own?40:0)+(free?5:0)+(ROLE_RE.test(e)?3:0);if(!cand[e]||cand[e].s<scoreFinal)cand[e]={s:scoreFinal,src,own};\n }\n osm.forEach(e=>add(e,60,\"osm\"));\n [home,contact].forEach((html,k)=>{for(const m of html.matchAll(/mailto:([^\"'?\\s<>]+)/gi))add(m[1],50-k,\"mailto\");});\n [home,contact].forEach((html,k)=>{for(const m of html.matchAll(EMAIL_RE))add(m[0],20-k,\"text\");});\n const entries=Object.entries(cand).sort((a,b)=>b[1].s-a[1].s);if(!entries.length)continue;\n const [email,meta]=entries[0];if(seenE.has(email)||existing.has(email))continue;seenE.add(email);\n const both=home+\" \"+contact, igm=both.match(/instagram\\.com\\/([a-zA-Z0-9._]{2,30})/i);let instagram=lead.instagram||\"\";\n if(!instagram&&igm&&!/^(p|reel|explore|accounts|share|sharer)$/i.test(igm[1]))instagram=\"https://instagram.com/\"+igm[1];\n const title=stripTags((home.match(/<title[^>]*>([^<]{3,120})<\\/title>/i)||[])[1]||\"\");\n const mdesc=((home.match(/<meta[^>]+name=[\"']description[\"'][^>]+content=[\"']([^\"']{10,240})[\"']/i)||[])[1]||\"\");\n const headline=stripTags((home.match(/<h1[^>]*>([\\s\\S]{3,160}?)<\\/h1>/i)||[])[1]||\"\");\n const bookingTool=/fresha|booksy|setmore|square appointments|acuity|calendly|vagaro|schedulicity|glossgenius|mindbody/i.test(home)?\"has an online booking tool\":\"\";\n const bonus=(signal.includes(String(year))?10:(signal.includes(String(year-1))?5:0))+(instagram?3:0);\n const row={...lead,email,emailScore:meta.s+bonus,emailSource:(meta.own?\"own domain\":meta.src===\"osm\"?\"OpenStreetMap\":\"gmail/outlook etc\")+\" (\"+meta.src+\")\",instagram,siteTitle:title,siteDesc:mdesc.replace(/\\s+/g,\" \").trim(),siteHeadline:headline,bookingTool,activeSignal:signal};\n out.push(row);\n}\nconst final=out.filter(x=>!/(Germany|Spain|Belgium|UAE|Dubai)/i.test(S(x.city)));\nreturn final.map((x,i)=>{x.realEmail=x.email;if(test){x.testMode=true;x.email=test.includes(\"@\")?test.replace(\"@\",`+test${i+1}@`):test;}x.mxDomain=x.realEmail.split(\"@\")[1];return {json:x};});"
+      },
+      "id": "4509380c-ee3d-43af-a780-01499dfe36e3",
+      "name": "Find Email1",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1424,
+        -448
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const S=v=>v==null?\"\":String(v), all=n=>$(n).all().map(x=>x.json), s=all(\"Settings1\")[0]||{};\nconst pick=a=>a[Math.floor(Math.random()*a.length)];\nconst N={\n\"hair stylist\":{who:\"a hair stylist who works mostly alone\",pain:[\"booking messages arrive while both hands are busy with a client\",\"clients ask the same questions about prices and availability in DMs\"],build:[\"a WhatsApp / Instagram DM assistant that answers price and availability questions and offers free slots\",\"a small assistant that replies to booking DMs and sends a reminder the day before\"]},\n\"barber\":{who:\"a barber\",pain:[\"people DM for a slot while the barber is mid-haircut\",\"walk-in or booking questions repeat all day\"],build:[\"a DM assistant that shows open slots and takes the booking\",\"a WhatsApp assistant that answers hours and price questions and saves the booking\"]},\n\"nail technician\":{who:\"a nail technician\",pain:[\"clients message to book while hands are busy with a set\",\"the same questions about design, price and length of appointment come up again and again\"],build:[\"a DM assistant that answers price and timing questions and offers a free slot\",\"a booking assistant with a reminder message the day before\"]},\n\"beauty studio\":{who:\"a beauty studio owner\",pain:[\"booking messages arrive while the owner is with a client\",\"clients ask about treatments, prices and aftercare in DMs\"],build:[\"a DM assistant that answers treatment and price questions and offers a free slot\",\"a booking assistant with a reminder message the day before\"]},\n\"makeup artist\":{who:\"a makeup artist\",pain:[\"enquiries for weddings and events come in at all hours and need a lot of the same details (date, place, number of people)\",\"the details are collected over many messages\"],build:[\"an assistant that collects date, place and number of people in one chat and sends it to her as one summary\",\"a DM assistant that asks the booking questions and saves the answers\"]},\n\"lash and brow artist\":{who:\"a lash and brow artist\",pain:[\"clients ask about aftercare, prices and refills in DMs during appointments\",\"rebooking reminders depend on remembering to send them\"],build:[\"an assistant that answers the repeated questions and sends a rebooking reminder\",\"a DM assistant that books and reminds\"]},\n\"personal trainer\":{who:\"a personal trainer or small gym owner\",pain:[\"new enquiries come in between sessions and wait for hours\",\"follow-ups with people who asked about packages get forgotten\"],build:[\"an assistant that answers package questions and books a free intro call\",\"a follow-up assistant that messages people who enquired but did not book\"]},\n\"yoga teacher\":{who:\"a yoga teacher\",pain:[\"class times, prices and trial questions repeat in messages\",\"people who tried one class are not followed up\"],build:[\"an assistant that answers class and price questions and books a trial class\",\"a message that follows up with people after their first class\"]},\n\"photographer\":{who:\"a photographer\",pain:[\"enquiries need the same details every time (date, place, type of shoot)\",\"people ask for prices, then go quiet\"],build:[\"an assistant that collects the shoot details in one chat and sends them as a summary\",\"a follow-up assistant for people who asked for prices and went quiet\"]},\n\"home bakery\":{who:\"a small bakery owner\",pain:[\"custom cake orders arrive as DMs with half the details missing\",\"asking back for date, size and flavour takes many messages\"],build:[\"an order assistant that asks for date, size, flavour and pickup in one chat\",\"a DM assistant that answers menu and price questions and saves the order\"]},\n\"florist\":{who:\"a florist\",pain:[\"orders and delivery questions arrive by DM and phone at the same time\",\"event and wedding enquiries need many details\"],build:[\"an order assistant that takes the delivery details and confirms them\",\"an assistant that answers the repeated questions and passes real orders on\"]},\n\"pet groomer\":{who:\"a pet groomer\",pain:[\"booking messages arrive while the groomer has a dog in the tub\",\"owners ask about breeds, sizes and prices before booking\"],build:[\"a booking assistant that asks breed and size, then offers a free slot\",\"a reminder message for the next grooming date\"]},\n\"tattoo artist\":{who:\"a tattoo artist\",pain:[\"enquiries come with unclear ideas, sizes and places on the body\",\"the same questions about deposit and aftercare repeat\"],build:[\"an assistant that collects idea, size, placement and photos in one chat for the artist to review\",\"an assistant that answers deposit and aftercare questions from the artist's own text\"]},\n\"massage therapist\":{who:\"a massage therapist\",pain:[\"booking messages arrive during sessions and cannot be answered\",\"clients forget appointments\"],build:[\"a booking assistant with a reminder message\",\"an assistant that answers price and timing questions and books a slot\"]}\n};\nconst FALLBACK={who:\"a small business owner\",pain:[\"messages arrive while they are busy with customers\"],build:[\"an assistant that replies to repeated questions and books appointments\"]};\nconst TONES=[\"friendly and casual, like a message from another small business person\",\"calm and respectful, short sentences\",\"warm and direct, no sales talk\",\"curious and humble, like a freelancer asking a fair question\"];\nconst STRUCTS=[\"Open with the one real detail from their page/Instagram, then the situation, then what you would build.\",\"Open with the situation in one short sentence, then say what made you write to THEM (the real detail), then what you would build.\",\"Open with what you would build in one sentence, then the situation it solves, then the real detail.\"];\nconst SUBJECTS=[\"a short question about their DMs (max 6 words)\",\"one specific word from their business + a short question (max 7 words)\",\"a plain subject that reads like a note from a person (max 6 words)\"];\nconst SYSTEM=\"You write short, human cold emails from one freelancer to one small business owner. You never invent facts about the recipient and never state results you cannot prove. You only use the facts you are given. Output valid JSON only.\";\nconst rows=[];\nfor(const l of $input.all().map(x=>x.json)){\n const n=N[l.niche]||FALLBACK, facts=[\"Business name: \"+S(l.businessName),\"Type: \"+S(l.niche)+\" in \"+S(l.city)];\n if(l.instagram)facts.push(\"They have an Instagram page: \"+l.instagram);\n if(l.siteTitle)facts.push(\"Their website title: \"+l.siteTitle);\n if(l.siteHeadline)facts.push(\"Their website headline: \"+l.siteHeadline);\n if(l.siteDesc)facts.push(\"Their website description: \"+l.siteDesc);\n if(l.bookingTool)facts.push(\"Their website \"+l.bookingTool);\n const user=`Write a SHORT cold email to the owner of a small local business, in ${S(l.language,\"English\")}. A greeting, my phone line, sign-off and opt-out line are added by another step, so do NOT write them.\n\nWHO THEY ARE: ${n.who}. Most likely the owner is the one answering messages.\nTONE: ${pick(TONES)}.\nSTRUCTURE: ${pick(STRUCTS)}\n\nFACTS YOU MAY USE (nothing else about them may be claimed or implied):\n${facts.join(\"\\n\")}\n\nSITUATION IDEA (describe it as something that CAN happen to someone in their job, not as a fact about them): ${pick(n.pain)}\nWHAT I WOULD BUILD FOR THEM (one thing only): ${pick(n.build)}\n\nPick ONE real detail from the FACTS (for example what their page says they do, their Instagram, or that they take bookings) and refer to it in a natural, specific way. Do not praise, do not exaggerate. If the facts are thin, refer to the type of work in their city instead.\n\nReturn ONLY JSON with exactly:\n\"subject\": ${pick(SUBJECTS)}. Sentence case, no ALL CAPS, no numbers, no \"Quick question\", no emoji.\n\"body\": 2 to 3 short sentences, 35 to 70 words in total, plain text, no bullet points. It ends after describing what I would build for them. Do NOT write the call to action or the offer of a free example (added by another step), and do NOT include a greeting, my name or a sign-off.\n\nRULES (a breach makes the email unusable):\n- I have no past clients and have not seen their business. Never write \"I noticed\", \"I saw\", \"I understand\", \"I can imagine\", \"my clients\", \"I help businesses like yours grow\".\n- No numbers, percentages, speed or result claims. Never promise more bookings, more sales or more time.\n- Do not use the words AI, automation, chatbot, bot, workflow, leverage, streamline, solution, synergy, game-changer, boost, scale.\n- Say \"assistant\" for the thing I build. Simple everyday words, nothing that sounds like a template.\n- Do not mention price, tools or technology.\n- Vary your wording: do not start with \"As\", \"Running\", \"Managing\", \"Being\".`;\n rows.push({json:{...l,model:S(s.model,\"gemini-flash-latest\"),requestBody:{systemInstruction:{parts:[{text:SYSTEM}]},contents:[{role:\"user\",parts:[{text:user}]}],generationConfig:{temperature:0.9,topP:0.95,responseMimeType:\"application/json\"}}}});\n}\nreturn rows;"
+      },
+      "id": "b2998114-50e0-41b7-a91c-785e4eaf429a",
+      "name": "Build Email Prompt1",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2096,
+        -448
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://generativelanguage.googleapis.com/v1beta/models/' + $json.model + ':generateContent' }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.requestBody) }}",
+        "options": {
+          "batching": {
+            "batch": {
+              "batchSize": 1,
+              "batchInterval": 7000
+            }
+          },
+          "timeout": 60000
+        }
+      },
+      "id": "e0b93b7a-278d-462a-bc62-c86f593aff0f",
+      "name": "Write Email (AI)1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2320,
+        -448
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 8000,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "REDACTED",
+          "name": "REDACTED"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const S=v=>v==null?\"\":String(v), all=n=>$(n).all().map(x=>x.json), leads=all(\"Build Email Prompt1\"), s=all(\"Settings1\")[0]||{}, wa=S(s.whatsapp).trim(), addr=S(s.postalAddress).trim();\nconst pick=a=>a[Math.floor(Math.random()*a.length)];\nconst T={\nEnglish:{hi:l=>\"Hi \"+S(l.businessName)+\",\",who:[\"I'm Efad, a freelancer who builds small message assistants for local businesses.\",\"I'm Efad. I build simple assistants that answer customer messages for small businesses.\",\"My name is Efad and I set up message assistants for small local businesses.\"],cta:[\"If you would like to see it, just reply YES and I will set up a small free example for you.\",\"Reply YES if you want to see a small free example for your business.\",\"If you are curious, reply with \\\"show me\\\" and I will send a short example for your business.\"],wa:\"You can also message me on WhatsApp: \"+wa+\".\",bye:\"Best,\",ps:\"P.S. If this is not for you, just reply \\\"no thanks\\\" and I will not email again.\"},\nFrench:{hi:l=>\"Bonjour \"+S(l.businessName)+\",\",who:[\"Je m'appelle Efad, je suis freelance et je crée de petits assistants de messagerie pour des commerces locaux.\",\"Je suis Efad. Je mets en place des assistants simples qui répondent aux messages des clients de petites entreprises.\"],cta:[\"Si cela vous intéresse, répondez simplement OUI et je prépare un petit exemple gratuit pour vous.\",\"Répondez OUI si vous voulez voir un petit exemple gratuit pour votre activité.\"],wa:\"Vous pouvez aussi m'écrire sur WhatsApp : \"+wa+\".\",bye:\"Cordialement,\",ps:\"P.S. Si ce n'est pas pour vous, répondez « non merci » et je ne vous écrirai plus.\"}\n};\nconst BAD=/\\b(AI|chatbot|automation|workflow|leverage|streamline|synergy|game.?changer)\\b|\\bI (noticed|saw|understand|can imagine)\\b|\\bmy clients\\b|\\bguarantee|\\bmore (bookings|sales|customers|clients)\\b|\\d+\\s?%|within seconds|instantly|undefined|\\[|\\{|^hi\\b|^hello\\b|^dear\\b|best regards|kind regards/i;\nconst out=[];\nfor(let i=0;i<$input.all().length;i++){\n const item=$input.all()[i].json, lead=leads[i]?{...leads[i]}:null;if(!lead)continue;delete lead.requestBody;\n let subject=\"\",body=\"\";\n try{let raw=S(item.candidates?.[0]?.content?.parts?.[0]?.text).replace(/```json|```/g,\"\").trim(),j=JSON.parse(raw);subject=S(j.subject).trim().replace(/^[\"']|[\"']$/g,\"\");body=S(j.body).trim();}catch{}\n if(!subject||!body)continue;\n subject=subject[0].toUpperCase()+subject.slice(1);\n if(subject.length>60||/\\d|!|quick question|never miss/i.test(subject)||/[A-Z]{5,}/.test(subject))subject=pick([\"A question about your messages\",\"Your DMs and bookings\",\"Small idea for \"+S(lead.businessName)]);\n const words=body.split(/\\s+/).filter(Boolean).length;if(words<35||words>110||BAD.test(body))continue;\n body=body.replace(/\\n{3,}/g,\"\\n\\n\");const t=T[lead.language]||T.English;\n const third=pick(t.who)+\" \"+pick(t.cta)+(Math.random()<0.5?\" \"+t.wa:\"\"), sign=t.bye+\"\\n\"+S(s.myName)+(addr?\"\\n\"+addr:\"\");\n lead.subject=subject;lead.body=[t.hi(lead),body,third,sign,t.ps].map(x=>x.trim()).filter(Boolean).join(\"\\n\\n\");out.push({json:lead});\n}\nreturn out;"
+      },
+      "id": "54655602-5eaf-46e1-9d2a-8c1d46446649",
+      "name": "Parse Email1",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2544,
+        -448
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.email }}",
+        "subject": "={{ $json.subject }}",
+        "emailType": "text",
+        "message": "={{ $json.body }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "id": "e7850003-4018-4da3-b244-1972405df877",
+      "name": "Send Outreach Email1",
+      "webhookId": "1356410c-8178-4624-ac80-95cbc01130b8",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        2768,
+        -448
+      ],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "REDACTED",
+          "name": "REDACTED"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const S=v=>v==null?\"\":String(v), leads=$(\"Parse Email1\").all().map(x=>x.json), now=new Date().toISOString();\nconst out=[];\nfor(let i=0;i<$input.all().length;i++){const item=$input.all()[i].json;if(!item.id)continue;const l=leads[i];if(!l)continue;\nout.push({json:{\"Date Added\":now.slice(0,10),\"Business Name\":l.businessName,\"Niche\":l.niche,\"City\":l.city,\"Address\":l.address,\"Phone\":l.phone,\"Website\":l.website,\"Instagram\":l.instagram||\"\",\"Facebook\":l.facebook||\"\",\"Email\":l.email,\"Email Source\":l.emailSource||\"\",\"Active Signal\":l.activeSignal||\"\",\"Place ID\":l.placeId,\"Subject\":l.subject,\"Site Detail\":S(l.siteHeadline||l.siteTitle).slice(0,120),\"Status\":\"Contacted\",\"Last Contacted\":now,\"Follow-ups Sent\":0,\"Language\":l.language}});\n}return out;"
+      },
+      "id": "bcf04204-fc25-4221-b660-66ca39e2c018",
+      "name": "Build Sheet Row1",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2992,
+        -448
+      ]
+    },
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyX",
+              "value": 5,
+              "unit": "minutes"
+            }
+          ]
+        },
+        "filters": {
+          "labelIds": [
+            "INBOX"
+          ]
+        }
+      },
+      "id": "d40cef25-638e-4e3a-b412-2d6f8dde7023",
+      "name": "Check Inbox Every 5 Min1",
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -368,
+        -224
+      ],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "REDACTED",
+          "name": "REDACTED"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const S=v=>v==null?\"\":String(v), replies=$input.all().map(x=>x.json).map(j=>{const snippet=S(j.snippet);return {blob:JSON.stringify(j).toLowerCase(),snippet,subject:S(j.Subject||j.subject),text:(snippet+\" \"+S(j.text)).toLowerCase()};});\nreturn [{json:{replies}}];"
+      },
+      "id": "b4507ee3-8351-4ffb-adc3-c140fb2f5cf5",
+      "name": "Collect Replies1",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -144,
+        -224
+      ]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "19zLOoP811uRWMgCpllLb9uM3525MH6WC6cy9veepIdE",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Leads",
+          "mode": "name"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "Status",
+              "lookupValue": "Contacted"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "42d79c14-adfc-403b-a76f-e5dfdba42107",
+      "name": "Read Active Leads1",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "alwaysOutputData": true,
+      "position": [
+        80,
+        -224
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "REDACTED",
+          "name": "REDACTED"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const S=v=>v==null?\"\":String(v), replies=$(\"Collect Replies1\").first()?.json?.replies||[], rows=$input.all().map(x=>x.json).filter(r=>r.Email), out=[],done=new Set();\nconst BOUNCE=/mailer-daemon|delivery status notification|undeliverable|address not found|delivery has failed/i, NOPE=/unsubscribe|not interested|no thanks|no thank you|stop emailing|remove me|do not contact|don't contact|non merci|ne plus m'écrire/i;\nfor(const rep of replies)for(const r of rows){const email=S(r.Email).toLowerCase();if(done.has(email)||!rep.blob.includes(email))continue;done.add(email);\nconst status=BOUNCE.test(rep.blob)?\"Bounced\":NOPE.test(rep.text)?\"Not Interested\":\"Replied - Interested\";\nout.push({json:{\"Email\":r.Email,Status:status,business:r[\"Business Name\"],phone:r.Phone,website:r.Website,niche:r.Niche,replySnippet:rep.snippet,replySubject:rep.subject}});\n}return out;"
+      },
+      "id": "18499c22-3d74-4717-8d51-474d8a8087bf",
+      "name": "Match Replies1",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        304,
+        -224
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "19zLOoP811uRWMgCpllLb9uM3525MH6WC6cy9veepIdE",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Leads",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [
+            "Email"
+          ],
+          "schema": [
+            {
+              "id": "Date Added",
+              "displayName": "Date Added",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Business Name",
+              "displayName": "Business Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Niche",
+              "displayName": "Niche",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "City",
+              "displayName": "City",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Address",
+              "displayName": "Address",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Phone",
+              "displayName": "Phone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Website",
+              "displayName": "Website",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Rating",
+              "displayName": "Rating",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Place ID",
+              "displayName": "Place ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Subject",
+              "displayName": "Subject",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Last Contacted",
+              "displayName": "Last Contacted",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Follow-ups Sent",
+              "displayName": "Follow-ups Sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Language",
+              "displayName": "Language",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "business",
+              "displayName": "business",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "phone",
+              "displayName": "phone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "website",
+              "displayName": "website",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "niche",
+              "displayName": "niche",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "replySnippet",
+              "displayName": "replySnippet",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "replySubject",
+              "displayName": "replySubject",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {
+          "cellFormat": "RAW"
+        }
+      },
+      "id": "5ecc6e5b-67f1-4c3d-b0fd-7704e9ed385f",
+      "name": "Update Lead Status1",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        528,
+        -224
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "REDACTED",
+          "name": "REDACTED"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "ff8aea27-c85a-49d1-a511-d6aa256b1ec0",
+              "leftValue": "={{ $('Match Replies1').itemMatching($itemIndex).json.Status }}",
+              "rightValue": "Replied - Interested",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "2311a2e0-a85c-4769-8419-b585db58c702",
+      "name": "Is Interested?1",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        752,
+        -224
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "Kingxefad@gmail.com",
+        "subject": "=🔥 Lead replied: {{ $('Match Replies1').itemMatching($itemIndex).json.business }}",
+        "emailType": "text",
+        "message": "=A lead replied to your outreach!\n\nBusiness: {{ $('Match Replies1').itemMatching($itemIndex).json.business }}\nType: {{ $('Match Replies1').itemMatching($itemIndex).json.niche }}\nEmail: {{ $('Match Replies1').itemMatching($itemIndex).json.Email }}\nPhone: {{ $('Match Replies1').itemMatching($itemIndex).json.phone }}\nWebsite: {{ $('Match Replies1').itemMatching($itemIndex).json.website }}\n\nTheir reply:\n{{ $('Match Replies1').itemMatching($itemIndex).json.replySnippet }}\n\nReply to them from your Gmail inbox now.",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "id": "bb8fe0ec-96fb-46c4-8a87-cefc01f34079",
+      "name": "Email Me The Hot Lead1",
+      "webhookId": "611deddf-d3f9-4599-aea3-5d66af5d33ea",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        976,
+        -224
+      ],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "REDACTED",
+          "name": "REDACTED"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 10
+            }
+          ]
+        }
+      },
+      "id": "b923518b-bde3-4a8f-b378-3f802cc4453a",
+      "name": "Daily 10AM Follow-up Trigger1",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -368,
+        224
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "4be12931-8c51-4cdf-92e5-b65810beb5b7",
+              "name": "myName",
+              "value": "Efad Sarkar",
+              "type": "string"
+            },
+            {
+              "id": "b78a1949-9f10-48fa-8803-c26ff0bf44bb",
+              "name": "whatsapp",
+              "value": "+8801975024692",
+              "type": "string"
+            },
+            {
+              "id": "68d64218-0b22-422f-9a70-392611bc674d",
+              "name": "model",
+              "value": "gemini-flash-latest",
+              "type": "string"
+            },
+            {
+              "id": "7c1f0b52-3a1e-4d57-9b0e-0a1c2d3e4f51",
+              "name": "postalAddress",
+              "value": "",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "a77a40bc-20ab-4e70-8484-311959464002",
+      "name": "Settings (Follow-up)1",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -144,
+        224
+      ]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "19zLOoP811uRWMgCpllLb9uM3525MH6WC6cy9veepIdE",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Leads",
+          "mode": "name"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "Status",
+              "lookupValue": "Contacted"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "01625111-43c0-4ce9-886c-8be375e5ea5b",
+      "name": "Read Contacted Leads1",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "alwaysOutputData": true,
+      "position": [
+        80,
+        224
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "REDACTED",
+          "name": "REDACTED"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const S=v=>v==null?\"\":String(v), now=Date.now(), out=[];\nfunction parseDate(v){if(!v)return null;const d=new Date(v);return Number.isNaN(d.getTime())?null:d;}\nfor(const x of $input.all().map(i=>i.json)){if(!x.Email||S(x.Status).trim()!==\"Contacted\")continue;const last=parseDate(x[\"Last Contacted\"]);if(!last)continue;const days=(now-last.getTime())/86400000;let n=0;try{n=parseInt(parseFloat(S(x[\"Follow-ups Sent\"]||\"0\")),10)||0;}catch{}if(days>=9.9&&n<3)out.push({json:{...x,followupNumber:n+1}});}\nreturn out.slice(0,20);"
+      },
+      "id": "050825f6-6a88-458e-afed-2bfa7082c297",
+      "name": "Find Leads Due1",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        304,
+        224
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const S=v=>v==null?\"\":String(v), s=$(\"Settings (Follow-up)1\").first()?.json||{};\nconst ANGLES={1:\"A friendly one-line bump. Add ONE concrete idea of what the assistant would do for their kind of work (for example: answer the usual price and availability questions in DMs/WhatsApp and offer a free slot). Do not repeat the first email.\",2:\"One very small everyday scene from their kind of work (a customer messages while the owner is busy with another customer), and what the assistant would do in that moment. Do not claim any result and do not say it happens to them.\",3:\"A short, polite last note: you will stop writing after this, the offer of a small free example stays open, they can reply any time.\"};\nconst rows=[];\nfor(const l of $input.all().map(x=>x.json)){const n=Number(l.followupNumber||1),detail=S(l[\"Site Detail\"]).trim(),hasIg=S(l.Instagram).trim();\nconst user=`Write follow-up email #${n} to the owner of \"${S(l[\"Business Name\"])}\" (${S(l.Niche)}, ${S(l.City)}).\nMy first email subject was: \"${S(l.Subject)}\".\n${detail?'A real detail from their website you may refer to once, if natural: \"'+detail+'\".':\"\"}\n${hasIg?\"They have an Instagram page, you may refer to it generally.\":\"\"}\nAngle: ${ANGLES[n]||ANGLES[3]}\nWrite in ${S(l.Language,\"English\")}, natural and native-sounding, like a person, not a template.\nRules: start with 'Hi ' + the business name + ','. 35 to 70 words, plain text, simple words, no invented statistics, no numbers, no clock times, no promises of results, never 'instantly' or 'within seconds'. Do not say you noticed anything about their business. Never use the words AI, automation, chatbot, bot, solution.\nEnd with one CTA: reply YES for a small free example, or message me on WhatsApp: ${S(s.whatsapp)}. Sign off as ${S(s.myName)}.\nAdd a last line: P.S. If this isn't for you, just reply \"no thanks\" and I won't email again.\nReturn ONLY JSON: {\"subject\": \"a short follow-up subject, max 6 words, sentence case\", \"body\": \"...\"}`;\nrows.push({json:{...l,model:S(s.model,\"gemini-flash-latest\"),requestBody:{systemInstruction:{parts:[{text:\"You write short, warm, human follow-up emails for a freelancer to a small business owner. Output valid JSON only.\"}]},contents:[{role:\"user\",parts:[{text:user}]}],generationConfig:{temperature:0.95,topP:0.95,responseMimeType:\"application/json\"}}}});\n}return rows;"
+      },
+      "id": "ee7c246a-9d90-49ba-ac17-b257efb50cc3",
+      "name": "Build Follow-up Prompt1",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        528,
+        224
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://generativelanguage.googleapis.com/v1beta/models/' + $json.model + ':generateContent' }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.requestBody) }}",
+        "options": {
+          "batching": {
+            "batch": {
+              "batchSize": 1,
+              "batchInterval": 7000
+            }
+          },
+          "timeout": 60000
+        }
+      },
+      "id": "484ace0c-6f7d-4397-a80a-3cd29af437c3",
+      "name": "Write Follow-up (AI)1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        752,
+        224
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 8000,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "REDACTED",
+          "name": "REDACTED"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const S=v=>v==null?\"\":String(v), leads=$(\"Build Follow-up Prompt1\").all().map(x=>x.json), addr=S($(\"Settings (Follow-up)1\").first()?.json?.postalAddress).trim(), out=[];\nfor(let i=0;i<$input.all().length;i++){const item=$input.all()[i].json,l=leads[i];if(!l)continue;let body=\"\",subj=\"\";\ntry{const raw=S(item.candidates?.[0]?.content?.parts?.[0]?.text).replace(/```json|```/g,\"\").trim(),j=JSON.parse(raw);body=S(j.body);subj=S(j.subject);}catch{}\nif(!body||body.split(/\\s+/).filter(Boolean).length<25||/\\b(AI|chatbot|automation)\\b/i.test(body))continue;\nif(addr)body=body.replace(/\\s*\\n\\s*P\\.S\\./,\"\\n\"+addr+\"\\n\\nP.S.\");\nout.push({json:{email:l.Email,subject:subj||\"Following up - \"+S(l.Subject),body,followupNumber:l.followupNumber}});\n}return out;"
+      },
+      "id": "95087e83-4bc9-4f60-88c5-6b2614e24ade",
+      "name": "Parse Follow-up1",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        976,
+        224
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.email }}",
+        "subject": "={{ $json.subject }}",
+        "emailType": "text",
+        "message": "={{ $json.body }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "id": "c05eed0b-bacf-4546-b468-2626cb050354",
+      "name": "Send Follow-up1",
+      "webhookId": "7e78d41e-da59-4b29-9ebc-950a0fc35065",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        1200,
+        224
+      ],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "REDACTED",
+          "name": "REDACTED"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const leads=$(\"Parse Follow-up1\").all().map(x=>x.json), now=new Date().toISOString(), out=[];\nfor(let i=0;i<$input.all().length;i++){const item=$input.all()[i].json,l=leads[i];if(!item.id||!l)continue;const n=Number(l.followupNumber||1);\nout.push({json:{Email:l.email,\"Last Contacted\":now,\"Follow-ups Sent\":n,Status:n>=3?\"Closed - No Reply\":\"Contacted\"}});\n}return out;"
+      },
+      "id": "5d1ffebf-1e35-4dfe-897e-dfaf86e09854",
+      "name": "Build Follow-up Update1",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1424,
+        224
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "19zLOoP811uRWMgCpllLb9uM3525MH6WC6cy9veepIdE",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Leads",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [
+            "Email"
+          ],
+          "schema": []
+        },
+        "options": {
+          "cellFormat": "RAW"
+        }
+      },
+      "id": "8e980afe-32c3-45dc-8319-3478f86d9d25",
+      "name": "Update Follow-up Count1",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1648,
+        224
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "REDACTED",
+          "name": "REDACTED"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "={{ $('Filter New Places1').all()[$itemIndex].json.contactUrl }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "User-Agent",
+              "value": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true,
+              "responseFormat": "text"
+            }
+          },
+          "timeout": 8000
+        }
+      },
+      "id": "1e2b166f-b1ae-4fe3-8dd0-4ea9f4022e3f",
+      "name": "Fetch Contact Page1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1200,
+        -448
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "url": "={{ 'https://dns.google/resolve?type=MX&name=' + encodeURIComponent($json.mxDomain) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true,
+              "responseFormat": "json"
+            }
+          },
+          "timeout": 8000
+        }
+      },
+      "id": "3cfb2776-185c-4c63-9654-8c283cba62cc",
+      "name": "MX Check1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1648,
+        -448
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const S=v=>v==null?\"\":String(v), leads=$(\"Find Email1\").all().map(x=>x.json), ok=[];\nfor(let i=0;i<$input.all().length;i++){const lead=leads[i],resp=$input.all()[i].json;if(!lead)continue;const ans=resp.Answer||[];let hasMx=false;\nif(Array.isArray(ans))for(const a of ans){if(a.type===15){const target=S(a.data).replace(/^\\d+\\s*/,\"\").trim();if(target!==\"\"&&target!==\".\")hasMx=true;}}\nif(hasMx)ok.push(lead);\n}\nok.sort((a,b)=>(b.emailScore||0)-(a.emailScore||0));return ok.slice(0,10).map(json=>({json}));"
+      },
+      "id": "4d9fb3b5-78e6-47f3-8568-7f97d594f01a",
+      "name": "Keep Valid Emails (10/day)1",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1872,
+        -448
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Setup (v12 - 100% free)\n**Credentials (only these 3):**\n1. `Gemini API Key` - type *Header Auth*. Name: `x-goog-api-key`  Value: your key from aistudio.google.com (free)\n2. Gmail account - OAuth2 (free, already connected)\n3. Google Sheets account - OAuth2 (free, already connected)\n\nNo key needed: OpenStreetMap Overpass (lead source), dns.google (email MX check).\n\n**Sheet 'Leads' headers (row 1):** Date Added, Business Name, Niche, City, Address, Phone, Website, Instagram, Facebook, Email, Email Source, Active Signal, Place ID, Subject, Site Detail, Status, Last Contacted, Follow-ups Sent, Language\n\n**Settings1:** fill postalAddress (needed for US CAN-SPAM). Fill testEmail for a safe test run, empty it for real sending.\nModel name is in Settings1/Settings (Follow-up)1 (`model`). If Gemini says model not found, pick another Flash model from AI Studio.",
+        "height": 420,
+        "width": 760
+      },
+      "id": "1b5a28a0-4504-469f-8435-322c0aceebb7",
+      "name": "Setup Notes",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -384,
+        -992
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "19zLOoP811uRWMgCpllLb9uM3525MH6WC6cy9veepIdE",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Leads",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": []
+        },
+        "options": {
+          "cellFormat": "RAW"
+        }
+      },
+      "id": "78ccf142-14cd-4205-8d83-42242dbc6b08",
+      "name": "Save to Leads Sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        3216,
+        -448
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "REDACTED",
+          "name": "REDACTED"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "return $input.all().map(item=>({json:{...item.json,python_test:\"Python Runner Working\",result:30}}));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2480,
+        -16
+      ],
+      "id": "00a31b3d-3681-4d0f-a022-a1ab290c744f",
+      "name": "Code in Python"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        2272,
+        0
+      ],
+      "id": "9ebe20a8-5a82-4f7a-8932-28cdcdb823bc",
+      "name": "When clicking ‘Execute workflow’"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Daily 9AM Trigger1": {
+      "main": [
+        [
+          {
+            "node": "Settings1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Settings1": {
+      "main": [
+        [
+          {
+            "node": "Read Existing Leads1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Existing Leads1": {
+      "main": [
+        [
+          {
+            "node": "Pick Searches1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pick Searches1": {
+      "main": [
+        [
+          {
+            "node": "Search OpenStreetMap (Overpass)1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter New Places1": {
+      "main": [
+        [
+          {
+            "node": "Fetch Website1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Website1": {
+      "main": [
+        [
+          {
+            "node": "Fetch Contact Page1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find Email1": {
+      "main": [
+        [
+          {
+            "node": "MX Check1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Email Prompt1": {
+      "main": [
+        [
+          {
+            "node": "Write Email (AI)1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Write Email (AI)1": {
+      "main": [
+        [
+          {
+            "node": "Parse Email1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Email1": {
+      "main": [
+        [
+          {
+            "node": "Send Outreach Email1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Outreach Email1": {
+      "main": [
+        [
+          {
+            "node": "Build Sheet Row1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Sheet Row1": {
+      "main": [
+        [
+          {
+            "node": "Save to Leads Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Inbox Every 5 Min1": {
+      "main": [
+        [
+          {
+            "node": "Collect Replies1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Collect Replies1": {
+      "main": [
+        [
+          {
+            "node": "Read Active Leads1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Active Leads1": {
+      "main": [
+        [
+          {
+            "node": "Match Replies1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Match Replies1": {
+      "main": [
+        [
+          {
+            "node": "Update Lead Status1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Lead Status1": {
+      "main": [
+        [
+          {
+            "node": "Is Interested?1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Interested?1": {
+      "main": [
+        [
+          {
+            "node": "Email Me The Hot Lead1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Daily 10AM Follow-up Trigger1": {
+      "main": [
+        [
+          {
+            "node": "Settings (Follow-up)1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Settings (Follow-up)1": {
+      "main": [
+        [
+          {
+            "node": "Read Contacted Leads1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Contacted Leads1": {
+      "main": [
+        [
+          {
+            "node": "Find Leads Due1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find Leads Due1": {
+      "main": [
+        [
+          {
+            "node": "Build Follow-up Prompt1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Follow-up Prompt1": {
+      "main": [
+        [
+          {
+            "node": "Write Follow-up (AI)1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Write Follow-up (AI)1": {
+      "main": [
+        [
+          {
+            "node": "Parse Follow-up1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Follow-up1": {
+      "main": [
+        [
+          {
+            "node": "Send Follow-up1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Follow-up1": {
+      "main": [
+        [
+          {
+            "node": "Build Follow-up Update1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Follow-up Update1": {
+      "main": [
+        [
+          {
+            "node": "Update Follow-up Count1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search OpenStreetMap (Overpass)1": {
+      "main": [
+        [
+          {
+            "node": "Filter New Places1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Contact Page1": {
+      "main": [
+        [
+          {
+            "node": "Find Email1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MX Check1": {
+      "main": [
+        [
+          {
+            "node": "Keep Valid Emails (10/day)1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Keep Valid Emails (10/day)1": {
+      "main": [
+        [
+          {
+            "node": "Build Email Prompt1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Code in Python",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "4e8fbe11-0652-4c14-87b0-e575cdba63bd",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "REDACTED_LONG_HEX_SECRET"
+  },
+  "nodeGroups": [],
+  "id": "QNPhM6UQ3k7y4iMo",
+  "tags": []
+}

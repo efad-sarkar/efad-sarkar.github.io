@@ -1,0 +1,1883 @@
+{
+  "name": "Dental clinic",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "f13dbb01-38b3-4fd6-aa25-7d8c32ca19ac",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -336,
+        -608
+      ],
+      "id": "d85b278d-5853-46c7-86f0-be9ba8030f9c",
+      "name": "Webhook",
+      "webhookId": "f13dbb01-38b3-4fd6-aa25-7d8c32ca19ac"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "157badd3-7b56-46bb-afb8-f2566eb378a3",
+              "leftValue": "={{ $json.query.hub_mode }}",
+              "rightValue": "subscriber",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "99012ee9-404e-43c9-bc67-0ee04dd67795",
+              "leftValue": "={{ $json.query.hub_verify_token }}",
+              "rightValue": "efad",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -112,
+        -608
+      ],
+      "id": "47f61264-328f-4a90-b151-10d9dbe7865a",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ $json.query.hub_challenge }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        112,
+        -608
+      ],
+      "id": "7e7c8540-8210-4e20-8895-abe040f59a55",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.messages[0].text.body }}",
+        "options": {
+          "systemMessage": "\nYou are an AI Assistant for a Medical Shop\nYour role is to handle doctor’s appointment bookings via WhatsApp.\nYou must always keep track of the user’s progress with simple memory, and store/retrieve data in Airtable.\nPayments are handled via Stripe or Cash on Clinic.\nAlways be polite, WhatsApp-friendly, and guide users step by step.\n\nCore Workflow:\n\nGreeting & Main Menu\n\nWhen a user sends any message for the first time, greet them:\n\"Hello, Welcome to Medical Shop\nPlease choose an option:\n\n1. New Booking\n2. My Upcoming Bookings\n3. Reschedule Booking\n4. Cancel Booking\"\n\nWait for the user’s choice.\n\nNew Booking Flow\n(a) Patient Lookup\n\nget user registered patients\n\nIf patients exist with , show patient list and ask which one to use.\n\nIf no patient exists for given WhatsApp number or user selects \"Add New Patient\":\n\nAsk for Name, Age, Gender.\n\nSave to Patients table.\n\nagain fetch the latest patient list for user \n\nShow updated patient list with patient_id ( must be displayed to user ), name, age and gender then ask which one to use ( user can reply with number option also ). \n\n(b) Date Selection\n\nGet the today's date and time from system\n\nGenerate 7 days (today + 6 days).\n\nExclude fully booked days.\n\nAsk user to choose a date.\n\n(c) Time Slot Selection\n\nFor chosen date, use working hours from the Config table.\n\nDivide into slots of 60 minutes.\n\nExclude already booked slots for chosen date Using All Appointments table.\n\nExclude not_available slot using give date and time from Config table in format YYYY-MM-DD HH:MM to HH:MM means on this date on given time range doctor will not be available.\n\nif todays date is chosen, Get the current time from system &  show only the slots after the current system time ( ex. if current time is 12:05 then give option from 13:00).\n\nShow available slots and ask user to pick one.\n\n(d) Payment Options\n\nAfter time is selected, ask:\n\"How would you like to pay?\n\n1. Online (Stripe)\n2. Cash at Clinic\"\n\n(e) Confirmation Message\n\nAfter taking all the data add the appointment in the Appointments table if user selects online (stripe) then save payment_method \"Stripe\"\n\nand send confirm message with:\n\"Appointment booked!\nPatient: {name}\nDate: {date}\nTime: {time}\nPayment Method: {method}\nPayment Status: Not paid\nStatus: Confirmed\"\n\nMy Upcoming Bookings Flow\n\nGet the current date and time from system\n\nLook up all future user appointments.\nGet all user patients.\n\nshow them as a list with user name , booking date , booking time\n\nReschedule Flow\n\nLook up all future confirmed appointments for the user.\nGet all user patients.\n\nShow them as a list with appointment id, user name, appointment date & time.\n\nAsk which one to reschedule.\n\nGet the today's date and time from system\n\nGenerate 7 days (today + 6 days).\n\nExclude fully booked days.\n\nAsk user to choose a date.\n\nFor chosen date, use working hours from the Config table.\n\nDivide into slots of 60 minutes.\n\nExclude already booked slots for chosen date Using All Appointments table.\n\nExclude not_available slot using give date and time from Config table in format YYYY-MM-DD HH:MM to HH:MM means on this date on given time range doctor will not be available.\n\nif todays date is chosen, Get the current time from system &  show only the slots after the current system time ( ex. if current time is 12:05 then give option from 13:00).\n\nShow available slots and ask user to pick one.\nafter the current system time ( if current time is 12:05 then give option from 13:00).\n\nShow available slots and ask user to pick one.\n\nafter picking one update the old appointment details with selected date and time \n\nand give a message to user that appointment has been reschedule and give details for new rescheduled appointment with patient details.\n\nCancel Flow\n\nGet the today's date and time from system\n\nLook up all future user appointments.\n\nShow them as a list with appointment id, appointment date & time .\n\nAsk which one to cancel.\n\nthen Cancel the selected appointment in the Appointments table.\n\nSend confirmation:\n\"Your appointment on {date} at {time} has been cancelled.\"\n\nAirtable Structure:\nPatients: patient_id, whatsapp_number, name, age, gender\nAppointments: appointment_id, patient_id, whatsapp_number, date, time, payment_method, payment_status, status, stripe_payment_intent\nConfig Table: key, value ( working_hours=10:00-18:00)\n\nMemory Rules:\n\nAlways remember where the user left off (menu, patient selection, date, time, payment).\n\nIf the user sends something invalid, say:\n\"Sorry, I didn’t understand that. Please reply with one of the given options.\"\n\nIf the user returns later, continue from the last remembered step.\n\nStyle Guide:\n\nsingle patient can register multiple patients and book as many appointments.\n\nKeep messages short, clear, and WhatsApp-friendly.\n\nUse numbers for options ( like reply with  1, 2, 3 ).\n\nAlways confirm before finalizing.\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        784,
+        -256
+      ],
+      "id": "9fae52f7-2333-4faa-b6a3-956849c308e0",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "phoneNumberId": "=1320322351165663",
+        "recipientPhoneNumber": "={{ $('WhatsApp Trigger live').item.json.messages[0].from }}",
+        "textBody": "={{ $json.output }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        1696,
+        -144
+      ],
+      "id": "0341b1fa-8fe6-4f9d-bdaf-5b6739e4e912",
+      "name": "Send message",
+      "webhookId": "08ecb519-9c26-400a-bf95-9e1514d93d4e",
+      "credentials": {
+        "whatsAppApi": {
+          "id": "REDACTED",
+          "name": "REDACTED"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "search",
+        "base": {
+          "__rl": true,
+          "value": "appPLACEHOLDERBASEID",
+          "mode": "list",
+          "cachedResultName": "Medical shop",
+          "cachedResultUrl": "https://airtable.com/appPLACEHOLDERBASEID"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblPLACEHOLDERConfig",
+          "mode": "list",
+          "cachedResultName": "Config",
+          "cachedResultUrl": "https://airtable.com/appPLACEHOLDERBASEID/tblPLACEHOLDERConfig"
+        },
+        "returnAll": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtableTool",
+      "typeVersion": 2.1,
+      "position": [
+        480,
+        -16
+      ],
+      "id": "b3c62436-4d32-4b56-9596-2c67e5600f82",
+      "name": "Project confiq",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "REDACTED",
+          "name": "REDACTED"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "search",
+        "base": {
+          "__rl": true,
+          "value": "appPLACEHOLDERBASEID",
+          "mode": "list",
+          "cachedResultName": "Medical shop",
+          "cachedResultUrl": "https://airtable.com/appPLACEHOLDERBASEID"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblPLACEHOLDERPatients",
+          "mode": "list",
+          "cachedResultName": "Patients",
+          "cachedResultUrl": "https://airtable.com/appPLACEHOLDERBASEID/tblPLACEHOLDERPatients"
+        },
+        "returnAll": true,
+        "filterByFormula": "={{ `{whatsapp_number} = '` + $json.messages[0].from + `'` }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtableTool",
+      "typeVersion": 2.1,
+      "position": [
+        608,
+        -16
+      ],
+      "id": "0c8b6a13-ece8-46d3-a87b-889cad2dd339",
+      "name": "Get patient list",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "REDACTED",
+          "name": "REDACTED"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "base": {
+          "__rl": true,
+          "value": "appPLACEHOLDERBASEID",
+          "mode": "list",
+          "cachedResultName": "Medical shop",
+          "cachedResultUrl": "https://airtable.com/appPLACEHOLDERBASEID"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblPLACEHOLDERPatients",
+          "mode": "list",
+          "cachedResultName": "Patients",
+          "cachedResultUrl": "https://airtable.com/appPLACEHOLDERBASEID/tblPLACEHOLDERPatients"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "patient_id": "={{ Math.floor(Math.random() * 90000) + 10000 }}",
+            "whatsapp_number": "={{ $json.contacts[0].wa_id }}",
+            "name": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('name', ``, 'string') }}",
+            "age": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('age', ``, 'string') }}",
+            "gender": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('gender', ``, 'string') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "patient_id",
+              "displayName": "patient_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "whatsapp_number",
+              "displayName": "whatsapp_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "name",
+              "displayName": "name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "age",
+              "displayName": "age",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "gender",
+              "displayName": "gender",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtableTool",
+      "typeVersion": 2.1,
+      "position": [
+        736,
+        -16
+      ],
+      "id": "bdd02900-bbff-49ce-b88d-2cef3c849080",
+      "name": "Add patient",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "REDACTED",
+          "name": "REDACTED"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "search",
+        "base": {
+          "__rl": true,
+          "value": "appPLACEHOLDERBASEID",
+          "mode": "list",
+          "cachedResultName": "Medical shop",
+          "cachedResultUrl": "https://airtable.com/appPLACEHOLDERBASEID"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblPLACEHOLDERAppointments",
+          "mode": "list",
+          "cachedResultName": "Appointments",
+          "cachedResultUrl": "https://airtable.com/appPLACEHOLDERBASEID/tblPLACEHOLDERAppointments"
+        },
+        "returnAll": true,
+        "filterByFormula": "={{ `{whatsapp_number} = '` + $json.contacts[0].wa_id + `'` }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtableTool",
+      "typeVersion": 2.1,
+      "position": [
+        864,
+        -16
+      ],
+      "id": "b40a8326-f4e3-40c9-8223-0f838f85490a",
+      "name": "get appointment",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "REDACTED",
+          "name": "REDACTED"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "base": {
+          "__rl": true,
+          "value": "appPLACEHOLDERBASEID",
+          "mode": "list",
+          "cachedResultName": "Medical shop",
+          "cachedResultUrl": "https://airtable.com/appPLACEHOLDERBASEID"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblPLACEHOLDERAppointments",
+          "mode": "list",
+          "cachedResultName": "Appointments",
+          "cachedResultUrl": "https://airtable.com/appPLACEHOLDERBASEID/tblPLACEHOLDERAppointments"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "appointment_id": "=A{{ Math.floor(Math.random() * 90000) + 10000 }}",
+            "patient_id": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('patient_id', ``, 'string') }}",
+            "whatsapp_number": "={{ $json.contacts[0].wa_id }}",
+            "date": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('date', ``, 'string') }}",
+            "time": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('time', ``, 'string') }}",
+            "payment_method": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('payment_method', ``, 'string') }}",
+            "payment_status": "Pending",
+            "status": "Confirmed"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "appointment_id",
+              "displayName": "appointment_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "patient_id",
+              "displayName": "patient_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "whatsapp_number",
+              "displayName": "whatsapp_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "date",
+              "displayName": "date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "time",
+              "displayName": "time",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "payment_method",
+              "displayName": "payment_method",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "payment_status",
+              "displayName": "payment_status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stripe_payment_Detailes",
+              "displayName": "stripe_payment_Detailes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtableTool",
+      "typeVersion": 2.1,
+      "position": [
+        992,
+        -16
+      ],
+      "id": "f953ffd2-2e57-4305-9f06-96683d278fdd",
+      "name": "Add appointment",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "REDACTED",
+          "name": "REDACTED"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "search",
+        "base": {
+          "__rl": true,
+          "value": "appPLACEHOLDERBASEID",
+          "mode": "list",
+          "cachedResultName": "Medical shop",
+          "cachedResultUrl": "https://airtable.com/appPLACEHOLDERBASEID"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblPLACEHOLDERAppointments",
+          "mode": "list",
+          "cachedResultName": "Appointments",
+          "cachedResultUrl": "https://airtable.com/appPLACEHOLDERBASEID/tblPLACEHOLDERAppointments"
+        },
+        "returnAll": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtableTool",
+      "typeVersion": 2.1,
+      "position": [
+        1120,
+        -16
+      ],
+      "id": "8e720603-0377-482e-8986-046e3abe94d2",
+      "name": "get all appointment1",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "REDACTED",
+          "name": "REDACTED"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "base": {
+          "__rl": true,
+          "value": "appPLACEHOLDERBASEID",
+          "mode": "list",
+          "cachedResultName": "Medical shop",
+          "cachedResultUrl": "https://airtable.com/appPLACEHOLDERBASEID"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblPLACEHOLDERAppointments",
+          "mode": "list",
+          "cachedResultName": "Appointments",
+          "cachedResultUrl": "https://airtable.com/appPLACEHOLDERBASEID/tblPLACEHOLDERAppointments"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "appointment_id": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('appointment_id__using_to_match_', ``, 'string') }}",
+            "date": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('date', ``, 'string') }}",
+            "time": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('time', ``, 'string') }}"
+          },
+          "matchingColumns": [
+            "appointment_id"
+          ],
+          "schema": [
+            {
+              "id": "appointment_id",
+              "displayName": "appointment_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "patient_id",
+              "displayName": "patient_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "whatsapp_number",
+              "displayName": "whatsapp_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "date",
+              "displayName": "date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "time",
+              "displayName": "time",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "payment_method",
+              "displayName": "payment_method",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "payment_status",
+              "displayName": "payment_status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stripe_payment_Detailes",
+              "displayName": "stripe_payment_Detailes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtableTool",
+      "typeVersion": 2.1,
+      "position": [
+        1248,
+        -16
+      ],
+      "id": "a89f156a-d399-4db9-bbde-d7342c0ffd7d",
+      "name": "Reschedule appointment",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "REDACTED",
+          "name": "REDACTED"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {
+          "timezone": "Asia/Dhaka"
+        }
+      },
+      "type": "n8n-nodes-base.dateTimeTool",
+      "typeVersion": 2,
+      "position": [
+        1376,
+        -16
+      ],
+      "id": "78675bf2-aad8-4e66-a394-db87f9f9cff8",
+      "name": "Date & Time"
+    },
+    {
+      "parameters": {
+        "updates": [
+          "messages"
+        ],
+        "options": {}
+      },
+      "type": "n8n-nodes-base.whatsAppTrigger",
+      "typeVersion": 1,
+      "position": [
+        -16,
+        -144
+      ],
+      "id": "42e816e5-3522-4b68-9a3c-6c522c10c54d",
+      "name": "WhatsApp Trigger live",
+      "webhookId": "d4e55cca-0d14-4791-abd2-fee4edf4f16d",
+      "credentials": {
+        "whatsAppTriggerApi": {
+          "id": "REDACTED",
+          "name": "REDACTED"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $json.contacts[0].user_id }}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.4,
+      "position": [
+        352,
+        -16
+      ],
+      "id": "4fea0cfa-3ad1-43a6-b8bb-27449c908a60",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "authentication": "airtableTokenApi",
+        "baseId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "appPLACEHOLDERBASEID",
+          "cachedResultName": "Medical shop",
+          "cachedResultUrl": "https://airtable.com/appPLACEHOLDERBASEID"
+        },
+        "tableId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "tblPLACEHOLDERAppointments",
+          "cachedResultName": "Appointments",
+          "cachedResultUrl": "https://airtable.com/appPLACEHOLDERBASEID/tblPLACEHOLDERAppointments"
+        },
+        "triggerField": "Created",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.airtableTrigger",
+      "typeVersion": 1,
+      "position": [
+        144,
+        368
+      ],
+      "id": "b5f00fe8-d4e5-4cac-8fbf-dc7fb44c518a",
+      "name": "Google Sheets Trigger",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "REDACTED",
+          "name": "REDACTED"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.stripe.com/v1/checkout/sessions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer REDACTED"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/x-www-form-urlencoded"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "metadata[appointmentId]",
+              "value": "={{ $json.fields.appointment_id }}"
+            },
+            {
+              "name": "line_items[0][quantity]",
+              "value": "1"
+            },
+            {
+              "name": "line_items[0][price_data][product_data][name]",
+              "value": "Medical Shop"
+            },
+            {
+              "name": "line_items[0][price_data][unit_amount]",
+              "value": "5000"
+            },
+            {
+              "name": "line_items[0][price_data][currency]",
+              "value": "usd"
+            },
+            {
+              "name": "mode",
+              "value": "payment"
+            },
+            {
+              "name": "success_url",
+              "value": "https://wa.me/8801983786812"
+            },
+            {
+              "name": "cancel_url",
+              "value": "https://wa.me/8801983786812"
+            },
+            {
+              "name": "metadata[whatsappNo]",
+              "value": "={{ $json.fields.whatsapp_number }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        592,
+        368
+      ],
+      "id": "80a28715-6730-4faa-95cc-1042052c0628",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "33205c9b-f896-4c6a-ab7b-9a4236886a3a",
+              "leftValue": "={{ $json.fields.payment_method }}",
+              "rightValue": "Stripe",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            },
+            {
+              "id": "45b25f69-8ef2-4aaf-a06b-fe737e7207cb",
+              "leftValue": "={{ $json.fields.payment_method }}",
+              "rightValue": "stripe",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        368,
+        368
+      ],
+      "id": "e6c185c9-3b77-42c7-99cb-cba5e6de9ea5",
+      "name": "If1"
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "phoneNumberId": "=1320322351165663",
+        "recipientPhoneNumber": "={{ $('Google Sheets Trigger').item.json.fields.whatsapp_number.toString() }}",
+        "textBody": "=Appointment id: {{ $('Google Sheets Trigger').item.json.fields.appointment_id }}\n\nThis is your payment link:\n\n{{ $json.url }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        816,
+        368
+      ],
+      "id": "7e3ed1b5-82d8-4a76-b4f7-45d63533c181",
+      "name": "Send message1",
+      "webhookId": "4465d68e-7493-464a-bb8f-a8d547e9e4eb",
+      "credentials": {
+        "whatsAppApi": {
+          "id": "REDACTED",
+          "name": "REDACTED"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "events": [
+          "payment_intent.created"
+        ]
+      },
+      "type": "n8n-nodes-base.stripeTrigger",
+      "typeVersion": 1,
+      "position": [
+        1520,
+        512
+      ],
+      "id": "93a5da87-e218-4d25-810c-7a967f81a4a4",
+      "name": "Stripe Trigger",
+      "webhookId": "5cef2a99-b909-452a-ae61-88fed337144c",
+      "credentials": {
+        "stripeApi": {
+          "id": "REDACTED",
+          "name": "REDACTED"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "https://api.stripe.com/v1/checkout/sessions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer REDACTED"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/x-www-form-urlencoded"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "payment_intent",
+              "value": "={{ $json.data.object.id }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        1744,
+        512
+      ],
+      "id": "3a499148-f8ff-4cf4-ae99-7db93b17364c",
+      "name": "HTTP Request1"
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "base": {
+          "__rl": true,
+          "value": "appPLACEHOLDERBASEID",
+          "mode": "list",
+          "cachedResultName": "Medical shop",
+          "cachedResultUrl": "https://airtable.com/appPLACEHOLDERBASEID"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblPLACEHOLDERAppointments",
+          "mode": "list",
+          "cachedResultName": "Appointments",
+          "cachedResultUrl": "https://airtable.com/appPLACEHOLDERBASEID/tblPLACEHOLDERAppointments"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "appointment_id": "={{ $json.data[0].metadata.appointmentId }}",
+            "payment_status": "Paid",
+            "status": "Confirmed",
+            "stripe_payment_Detailes": "={{ $json.data[0].payment_intent }}"
+          },
+          "matchingColumns": [
+            "appointment_id"
+          ],
+          "schema": [
+            {
+              "id": "appointment_id",
+              "displayName": "appointment_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "patient_id",
+              "displayName": "patient_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "whatsapp_number",
+              "displayName": "whatsapp_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "date",
+              "displayName": "date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "time",
+              "displayName": "time",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "payment_method",
+              "displayName": "payment_method",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "payment_status",
+              "displayName": "payment_status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stripe_payment_Detailes",
+              "displayName": "stripe_payment_Detailes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        1968,
+        416
+      ],
+      "id": "116e8159-3e6c-487a-beef-b403e649951c",
+      "name": "Update row in sheet",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "REDACTED",
+          "name": "REDACTED"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "phoneNumberId": "=1320322351165663",
+        "recipientPhoneNumber": "={{ $json.data[0].metadata.whatsappNo }}",
+        "textBody": "=Your payment has recived successfully.\n\nAppointment id: {{ $json.data[0].metadata.appointmentId }}\n\nThank you for having with us.",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        1968,
+        608
+      ],
+      "id": "a83a3e87-003f-4557-b037-e857965d5709",
+      "name": "Send message2",
+      "webhookId": "26c48414-5ea8-42ef-be26-2778e45bd0eb",
+      "credentials": {
+        "whatsAppApi": {
+          "id": "REDACTED",
+          "name": "REDACTED"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "base": {
+          "__rl": true,
+          "value": "appPLACEHOLDERBASEID",
+          "mode": "list",
+          "cachedResultName": "Medical shop",
+          "cachedResultUrl": "https://airtable.com/appPLACEHOLDERBASEID"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblPLACEHOLDERAppointments",
+          "mode": "list",
+          "cachedResultName": "Appointments",
+          "cachedResultUrl": "https://airtable.com/appPLACEHOLDERBASEID/tblPLACEHOLDERAppointments"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "appointment_id": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('appointment_id__using_to_match_', ``, 'string') }}",
+            "status": "Cancelled"
+          },
+          "matchingColumns": [
+            "appointment_id"
+          ],
+          "schema": [
+            {
+              "id": "appointment_id",
+              "displayName": "appointment_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "patient_id",
+              "displayName": "patient_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "whatsapp_number",
+              "displayName": "whatsapp_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "date",
+              "displayName": "date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "time",
+              "displayName": "time",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "payment_method",
+              "displayName": "payment_method",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "payment_status",
+              "displayName": "payment_status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stripe_payment_Detailes",
+              "displayName": "stripe_payment_Detailes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtableTool",
+      "typeVersion": 2.1,
+      "position": [
+        1504,
+        -16
+      ],
+      "id": "2203af11-04ef-41ae-9e73-0cc246283362",
+      "name": "Cancel appointment1",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "REDACTED",
+          "name": "REDACTED"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "1938735e-bf4d-49ea-be2f-0adfc96f944d",
+              "leftValue": "={{ $json.fields.status.toLowerCase() }}",
+              "rightValue": "cancelled",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        208,
+        1008
+      ],
+      "id": "5bfee981-e94b-4239-ac6c-21c79771b742",
+      "name": "If2"
+    },
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "authentication": "airtableTokenApi",
+        "baseId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "appPLACEHOLDERBASEID",
+          "cachedResultName": "Medical shop",
+          "cachedResultUrl": "https://airtable.com/appPLACEHOLDERBASEID"
+        },
+        "tableId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "tblPLACEHOLDERAppointments",
+          "cachedResultName": "Appointments",
+          "cachedResultUrl": "https://airtable.com/appPLACEHOLDERBASEID/tblPLACEHOLDERAppointments"
+        },
+        "triggerField": "Status Last Modified",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.airtableTrigger",
+      "typeVersion": 1,
+      "position": [
+        -16,
+        1008
+      ],
+      "id": "cadc0ba1-5c95-4936-8595-38f212e352e9",
+      "name": "Google Sheets Trigger1",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "REDACTED",
+          "name": "REDACTED"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "37e7ab8e-bc66-4cbf-8d8e-80b6f8efc305",
+              "leftValue": "={{ $json.fields.stripe_payment_Detailes }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        432,
+        1008
+      ],
+      "id": "9f73c06b-0337-4096-b0d4-b309f2542e5d",
+      "name": "If3"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.stripe.com/v1/refunds",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer REDACTED"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/x-www-form-urlencoded"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "payment_intent",
+              "value": "={{ $json.fields.stripe_payment_Detailes }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        656,
+        912
+      ],
+      "id": "d7c7fd00-35b6-4a0e-bbec-2ffe3673b4ed",
+      "name": "HTTP Request2"
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "phoneNumberId": "=1320322351165663",
+        "recipientPhoneNumber": "={{ $('Google Sheets Trigger1').item.json.fields.whatsapp_number.toString() }}",
+        "textBody": "=Your Appointment id: {{ $('Google Sheets Trigger1').item.json.fields.appointment_id }} is cancelled and the refund has been initiated",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        880,
+        816
+      ],
+      "id": "08b027ba-8cc3-49fc-8ac4-0850515ce654",
+      "name": "Send message3",
+      "webhookId": "96245777-2f1e-4f74-8970-80d55d0d289c",
+      "credentials": {
+        "whatsAppApi": {
+          "id": "REDACTED",
+          "name": "REDACTED"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "base": {
+          "__rl": true,
+          "value": "appPLACEHOLDERBASEID",
+          "mode": "list",
+          "cachedResultName": "Medical shop",
+          "cachedResultUrl": "https://airtable.com/appPLACEHOLDERBASEID"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblPLACEHOLDERAppointments",
+          "mode": "list",
+          "cachedResultName": "Appointments",
+          "cachedResultUrl": "https://airtable.com/appPLACEHOLDERBASEID/tblPLACEHOLDERAppointments"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "appointment_id": "={{ $('Google Sheets Trigger1').item.json.fields.appointment_id }}",
+            "payment_status": "Refunded",
+            "status": "Cancelled",
+            "stripe_payment_Detailes": "={{ $json.myField ?? null }}"
+          },
+          "matchingColumns": [
+            "appointment_id"
+          ],
+          "schema": [
+            {
+              "id": "appointment_id",
+              "displayName": "appointment_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "patient_id",
+              "displayName": "patient_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "whatsapp_number",
+              "displayName": "whatsapp_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "date",
+              "displayName": "date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "time",
+              "displayName": "time",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "payment_method",
+              "displayName": "payment_method",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "payment_status",
+              "displayName": "payment_status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stripe_payment_Detailes",
+              "displayName": "stripe_payment_Detailes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        880,
+        1008
+      ],
+      "id": "d28b0b68-847f-4450-ae6f-286c2feedf82",
+      "name": "Update row in sheet1",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "REDACTED",
+          "name": "REDACTED"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "phoneNumberId": "=1320322351165663",
+        "recipientPhoneNumber": "={{ $('Google Sheets Trigger').item.json.fields.whatsapp_number.toString() }}",
+        "textBody": "=Your Appointment {{ $('Google Sheets Trigger1').item.json.fields.appointment_id }} is cancelled",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        656,
+        1104
+      ],
+      "id": "75123205-462b-4ac7-95f4-761efe301fa9",
+      "name": "Send message4",
+      "webhookId": "96245777-2f1e-4f74-8970-80d55d0d289c",
+      "credentials": {
+        "whatsAppApi": {
+          "id": "REDACTED",
+          "name": "REDACTED"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "nvidia/nemotron-3-super-120b-a12b:free",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        224,
+        -16
+      ],
+      "id": "9a096aac-0bcd-4c44-9006-1f25b2d8f85d",
+      "name": "OpenRouter Chat Model",
+      "credentials": {
+        "openRouterApi": {
+          "id": "REDACTED",
+          "name": "REDACTED"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "height": 576,
+        "width": 2192
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -144,
+        -304
+      ],
+      "typeVersion": 1,
+      "id": "09dd69dd-8de6-43a9-add7-ec875c780733",
+      "name": "Sticky Note"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Send message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Project confiq": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get patient list": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Add patient": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "get appointment": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Add appointment": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "get all appointment1": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reschedule appointment": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Date & Time": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WhatsApp Trigger live": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Sheets Trigger": {
+      "main": [
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If1": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Send message1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Stripe Trigger": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request1": {
+      "main": [
+        [
+          {
+            "node": "Update row in sheet",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send message2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cancel appointment1": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Sheets Trigger1": {
+      "main": [
+        [
+          {
+            "node": "If2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If2": {
+      "main": [
+        [
+          {
+            "node": "If3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If3": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request2",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send message4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request2": {
+      "main": [
+        [
+          {
+            "node": "Send message3",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Update row in sheet1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "0956cee2-c28e-45d2-8b28-a8259fd4ab83",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "REDACTED_LONG_HEX_SECRET"
+  },
+  "nodeGroups": [],
+  "id": "iQWQoGMYc93LfP4Z",
+  "tags": []
+}

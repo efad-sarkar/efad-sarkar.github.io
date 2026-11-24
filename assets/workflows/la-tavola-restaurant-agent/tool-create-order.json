@@ -1,0 +1,406 @@
+{
+  "name": "Tool - create_order",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "create-order",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.2,
+      "position": [
+        0,
+        0
+      ],
+      "id": "9e3db66b-6210-44a1-b778-354775397f79",
+      "name": "Webhook",
+      "webhookId": "ad6bd33d-676e-4b83-81bf-4deb4a244d72"
+    },
+    {
+      "parameters": {
+        "operation": "search",
+        "base": {
+          "__rl": true,
+          "value": "appuiLzWzGaHSTe5k",
+          "mode": "list",
+          "cachedResultName": "Restaurant",
+          "cachedResultUrl": "https://airtable.com/appuiLzWzGaHSTe5k"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblvtcpuiyIuUJaJI",
+          "mode": "list",
+          "cachedResultName": "Menu",
+          "cachedResultUrl": "https://airtable.com/appuiLzWzGaHSTe5k/tblvtcpuiyIuUJaJI"
+        },
+        "filterByFormula": "{Available}=1",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        224,
+        0
+      ],
+      "id": "c1b4d300-00bd-4ec2-8cd9-7072d3523e10",
+      "name": "Get Menu",
+      "alwaysOutputData": true,
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "REDACTED",
+          "name": "REDACTED"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const b = $('Webhook').first().json.body || {};\nconst norm = (s) => String(s || '').toLowerCase().replace(/[^a-z0-9 ]/g, ' ').replace(/\\s+/g, ' ').trim();\nconst round = (n) => Math.round(n * 100) / 100;\nconst fail = (message, extra = {}) => [{ json: { valid: false, success: false, message, ...extra } }];\n\n// ---- Customer details ----\nconst name = String(b.customer_name || '').trim();\nconst phone = String(b.phone || '').replace(/[^\\d+]/g, '');\nif (!name || phone.length < 6) {\n  return fail(\"I still need the customer's name and phone number to place the order.\");\n}\n\n// ---- Order type ----\nconst typeRaw = norm(b.order_type);\nlet type;\nif (typeRaw.includes('deliver')) type = 'Delivery';\nelse if (typeRaw.includes('pick') || typeRaw.includes('take')) type = 'Pickup';\nelse if (typeRaw.includes('dine') || typeRaw.includes('eat')) type = 'Dine-in';\nelse return fail('I need to know if this order is dine-in, pickup or delivery.');\n\nconst address = String(b.address || '').trim();\nif (type === 'Delivery' && address.length < 5) {\n  return fail('I need the delivery address to place a delivery order.');\n}\n\n// ---- Items ----\nlet requested = b.items;\nif (typeof requested === 'string') {\n  // fallback format: \"2 Margherita Pizza, 1 Tiramisu\"\n  requested = requested.split(/,|;/).map(s => {\n    const m = s.trim().match(/^(\\d+)\\s*x?\\s*(.+)$/i);\n    return m ? { name: m[2], quantity: +m[1] } : { name: s.trim(), quantity: 1 };\n  }).filter(x => x.name);\n}\nif (!Array.isArray(requested) || requested.length === 0) {\n  return fail('I need at least one item to place the order.');\n}\n\nconst menu = $('Get Menu').all().map(i => {\n  const f = i.json.fields ?? i.json;\n  return { item: f['Item'], price: Number(f['Price']), key: norm(f['Item']) };\n}).filter(m => m.item && !isNaN(m.price));\n\nconst lines = [];\nconst unknown = [];\nfor (const r of requested) {\n  const raw = String(r.name ?? r.item ?? '');\n  const key = norm(raw);\n  const qty = Math.max(1, Math.min(20, parseInt(r.quantity, 10) || 1));\n  let hit = menu.find(m => m.key === key);\n  if (!hit && key.length >= 3) {\n    const fuzzy = menu.filter(m => m.key.includes(key) || key.includes(m.key));\n    if (fuzzy.length === 1) hit = fuzzy[0];\n  }\n  if (!hit) { unknown.push(raw); continue; }\n  lines.push({ item: hit.item, qty, price: hit.price, lineTotal: round(hit.price * qty) });\n}\nif (unknown.length) {\n  return fail(\n    `I could not find these on the available menu: ${unknown.join(', ')}. Please ask the customer to choose another item.`,\n    { unknown_items: unknown }\n  );\n}\n\n// ---- Totals (rules from the restaurant info PDF) ----\nconst subtotal = round(lines.reduce((s, l) => s + l.lineTotal, 0));\nif (type === 'Delivery' && subtotal < 15) {\n  return fail('The minimum order for delivery is $15.', { subtotal });\n}\nconst deliveryFee = type === 'Delivery' ? (subtotal > 40 ? 0 : 3) : 0;\nconst total = round(subtotal + deliveryFee);\n\nconst itemsText = lines.map(l => `${l.qty}x ${l.item} ($${l.price.toFixed(2)})`).join('\\n');\n\nreturn [{ json: {\n  valid: true,\n  customer_name: name, phone, order_type: type,\n  address: type === 'Delivery' ? address : '',\n  items_text: itemsText, lines, subtotal,\n  delivery_fee: deliveryFee, total,\n}}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        448,
+        0
+      ],
+      "id": "18805173-480b-4b9a-87a7-0c7da8772b78",
+      "name": "Build Order"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "5912606e-6516-4697-ab58-b82ddba55283",
+              "leftValue": "={{ $json.valid }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        672,
+        0
+      ],
+      "id": "ef9f9186-657b-4ab9-91b1-474f2b556519",
+      "name": "Can Order"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        896,
+        96
+      ],
+      "id": "0a1eb301-3fc5-4248-a4e7-e3af19cb3e0d",
+      "name": "Respond Can't Order"
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "base": {
+          "__rl": true,
+          "value": "appuiLzWzGaHSTe5k",
+          "mode": "list",
+          "cachedResultName": "Restaurant",
+          "cachedResultUrl": "https://airtable.com/appuiLzWzGaHSTe5k"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblqUrD3GelzDiMhF",
+          "mode": "list",
+          "cachedResultName": "Orders",
+          "cachedResultUrl": "https://airtable.com/appuiLzWzGaHSTe5k/tblqUrD3GelzDiMhF"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Customer Name": "={{ $json.customer_name }}",
+            "Phone": "={{ $json.phone }}",
+            "Items": "={{ $json.items_text }}",
+            "Total": "={{ $json.total }}",
+            "Type": "={{ $json.order_type }}",
+            "Status": "New",
+            "Address": "={{ $json.address }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Order ID",
+              "displayName": "Order ID",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Customer Name",
+              "displayName": "Customer Name",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Phone",
+              "displayName": "Phone",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Items",
+              "displayName": "Items",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Total",
+              "displayName": "Total",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Type",
+              "displayName": "Type",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "Dine-in",
+                  "value": "Dine-in"
+                },
+                {
+                  "name": "Pickup",
+                  "value": "Pickup"
+                },
+                {
+                  "name": "Delivery",
+                  "value": "Delivery"
+                }
+              ],
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "New",
+                  "value": "New"
+                },
+                {
+                  "name": "Preparing",
+                  "value": "Preparing"
+                },
+                {
+                  "name": "Done",
+                  "value": "Done"
+                },
+                {
+                  "name": "Cancelled",
+                  "value": "Cancelled"
+                }
+              ],
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Address",
+              "displayName": "Address",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {
+          "typecast": true
+        }
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        896,
+        -96
+      ],
+      "id": "123d75f8-7cba-418e-9528-3f4d97fa8294",
+      "name": "Create Order",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "REDACTED",
+          "name": "REDACTED"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const o = $('Build Order').first().json;\nconst rec = $input.first().json;\nconst f = rec.fields ?? rec;\n\nreturn [{\n  json: {\n    success: true,\n    order_id: f['Order ID'],\n    order_type: o.order_type,\n    items: o.lines.map(l => `${l.qty} ${l.item}`),\n    subtotal: o.subtotal,\n    delivery_fee: o.delivery_fee,\n    total: o.total,\n    message: 'Order placed.',\n  },\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        -96
+      ],
+      "id": "67d0513a-f730-4c13-a46b-735bf9fa9f69",
+      "name": "Build Ordered"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1344,
+        -96
+      ],
+      "id": "b512b5f3-0e51-47ce-acf7-eecfab7d7b93",
+      "name": "Respond Ordered"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Get Menu",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Menu": {
+      "main": [
+        [
+          {
+            "node": "Build Order",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Order": {
+      "main": [
+        [
+          {
+            "node": "Can Order",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Can Order": {
+      "main": [
+        [
+          {
+            "node": "Create Order",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond Can't Order",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Order": {
+      "main": [
+        [
+          {
+            "node": "Build Ordered",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Ordered": {
+      "main": [
+        [
+          {
+            "node": "Respond Ordered",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "cdff5e5c-b157-4898-b6fc-853117361f6a",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "REDACTED_LONG_HEX_SECRET"
+  },
+  "nodeGroups": [],
+  "id": "RPTxKg14vIU5GQkv",
+  "tags": []
+}

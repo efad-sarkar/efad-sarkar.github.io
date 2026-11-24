@@ -1,0 +1,333 @@
+{
+  "name": "Drive to TikTok + Instagram v3 (no ffmpeg, free)",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## v3 setup (no ffmpeg needed)\n1. **Google Drive Trigger**: connect your Google account (needs access to the folder). Folder is already set.\n2. **Gemini Captions**: replace YOUR_GEMINI_API_KEY. If Gemini fails, a simple caption from the file name is used.\n3. **Upload-Post**: replace YOUR_UPLOAD_POST_API_KEY and YOUR_UPLOAD_POST_PROFILE (connect TikTok + Instagram inside Upload-Post first).\n\nThis version does NOT convert videos. Upload videos to Drive already vertical 9:16 (1080x1920), MP4, under 90 seconds. Export from your phone or free CapCut/OBS in 9:16.\n\nFree Upload-Post plan = about 10 uploads/month.",
+        "height": 300,
+        "width": 600
+      },
+      "id": "c0000000-0000-4000-8000-000000000001",
+      "name": "Setup Notes",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        0,
+        -460
+      ]
+    },
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "triggerOn": "specificFolder",
+        "folderToWatch": {
+          "__rl": true,
+          "value": "1BleUJhnGgGrutY6dGFFKy9pVRa1HyKF-",
+          "mode": "id"
+        },
+        "event": "fileCreated",
+        "options": {}
+      },
+      "id": "c0000000-0000-4000-8000-000000000002",
+      "name": "Google Drive Trigger",
+      "type": "n8n-nodes-base.googleDriveTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "c1000000-0000-4000-8000-000000000001",
+              "leftValue": "={{ ($json.mimeType || '').startsWith('video/') || /\\.(mp4|mov|m4v|webm)$/i.test($json.name || '') }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "c0000000-0000-4000-8000-000000000003",
+      "name": "Is Video?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        220,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      },
+      "id": "c0000000-0000-4000-8000-000000000004",
+      "name": "One Video at a Time",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        440,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "amount": 1,
+        "unit": "minutes"
+      },
+      "id": "c0000000-0000-4000-8000-000000000005",
+      "name": "Wait for Upload",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        680,
+        0
+      ],
+      "webhookId": "c0000000-0000-4000-8000-0000000000a1"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-goog-api-key",
+              "value": "YOUR_GEMINI_API_KEY"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ contents: [{ parts: [{ text: 'Write a TikTok caption (hook in the first line, under 150 characters, 3 to 5 hashtags) and an Instagram caption (2 to 3 short lines, a clear call to action, 5 to 8 hashtags) for a short video about AI agent automation. Keep it practical and focused on the automation work itself, no corporate tone. Topic: ' + ($json.name || 'automation').replace(/\\.[^/.]+$/, '') + '. Return only JSON with keys tiktok_caption and instagram_caption.' }] }], generationConfig: { responseMimeType: 'application/json' } }) }}",
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "id": "c0000000-0000-4000-8000-000000000006",
+      "name": "Gemini Captions",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        920,
+        0
+      ],
+      "retryOnFail": true,
+      "maxTries": 5,
+      "waitBetweenTries": 5000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const w = $('Wait for Upload').first().json;\nconst base = (w.name || 'video').replace(/\\.[^/.]+$/, '');\nlet tiktok = base + ' #AIautomation #n8n #automation';\nlet insta = base + ' #AIautomation #n8n #automation';\ntry {\n  const raw = $input.first().json.candidates[0].content.parts[0].text;\n  const c = JSON.parse(raw.replace(/```json|```/g, '').trim());\n  if (c.tiktok_caption) tiktok = c.tiktok_caption;\n  if (c.instagram_caption) insta = c.instagram_caption;\n} catch (e) {\n  // Gemini failed: keep the simple fallback captions above\n}\nreturn [{ json: { id: w.id, name: w.name, tiktok_caption: tiktok, instagram_caption: insta } }];"
+      },
+      "id": "c0000000-0000-4000-8000-000000000007",
+      "name": "Parse Captions",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1160,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $json.id }}",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "id": "c0000000-0000-4000-8000-000000000008",
+      "name": "Download Video",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        1400,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.upload-post.com/api/upload",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Apikey YOUR_UPLOAD_POST_API_KEY"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "user",
+              "value": "YOUR_UPLOAD_POST_PROFILE"
+            },
+            {
+              "name": "platform[]",
+              "value": "tiktok"
+            },
+            {
+              "name": "platform[]",
+              "value": "instagram"
+            },
+            {
+              "name": "title",
+              "value": "={{ $('Parse Captions').first().json.tiktok_caption }}"
+            },
+            {
+              "name": "tiktok_title",
+              "value": "={{ $('Parse Captions').first().json.tiktok_caption }}"
+            },
+            {
+              "name": "instagram_title",
+              "value": "={{ $('Parse Captions').first().json.instagram_caption }}"
+            },
+            {
+              "parameterType": "formBinaryData",
+              "name": "video",
+              "inputDataFieldName": "data"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 300000
+        }
+      },
+      "id": "c0000000-0000-4000-8000-00000000000c",
+      "name": "Upload-Post (TikTok + Instagram)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1640,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "Google Drive Trigger": {
+      "main": [
+        [
+          {
+            "node": "Is Video?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Video?": {
+      "main": [
+        [
+          {
+            "node": "One Video at a Time",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "One Video at a Time": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Wait for Upload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait for Upload": {
+      "main": [
+        [
+          {
+            "node": "Gemini Captions",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini Captions": {
+      "main": [
+        [
+          {
+            "node": "Parse Captions",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Captions": {
+      "main": [
+        [
+          {
+            "node": "Download Video",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download Video": {
+      "main": [
+        [
+          {
+            "node": "Upload-Post (TikTok + Instagram)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload-Post (TikTok + Instagram)": {
+      "main": [
+        [
+          {
+            "node": "One Video at a Time",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "active": false
+}

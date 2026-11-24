@@ -1,0 +1,361 @@
+{
+  "name": "RAG AI",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "b08188f0-368a-4fcb-9795-8d2555d2d978",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -1008,
+        80
+      ],
+      "id": "25f79f8a-f6ac-46ee-8308-0f89b5e00116",
+      "name": "Webhook",
+      "webhookId": "b08188f0-368a-4fcb-9795-8d2555d2d978"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.body.query }}",
+        "options": {
+          "systemMessage": "You are an AI assistant that answers users based on their query and the provided context.\n\nUse the retrieved context and user information to generate an accurate, relevant, and helpful answer.\n\nRules:\n- Answer only from the provided context.\n- Do not make up information.\n- If the answer is not available in the context, clearly say that the information is not available.\n- Consider the user's name and other provided details when relevant.\n- Keep the answer short, clear, natural, and professional.\n- Do not mention the RAG system, vector database, or internal workflow."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        -752,
+        80
+      ],
+      "id": "30c865d4-1fc0-486c-93f3-7dfe61c7d743",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolDescription": "work with your data in pinecone store and answer based on context",
+        "pineconeIndex": {
+          "__rl": true,
+          "value": "efadzet",
+          "mode": "list",
+          "cachedResultName": "efadzet"
+        },
+        "topK": 2,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStorePinecone",
+      "typeVersion": 1.3,
+      "position": [
+        -648,
+        312
+      ],
+      "id": "aecc8fae-f471-41bb-b8f2-8337b8169698",
+      "name": "Pinecone Vector Store",
+      "credentials": {
+        "pineconeApi": {
+          "id": "REDACTED",
+          "name": "REDACTED"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        -568,
+        520
+      ],
+      "id": "fbe9715c-31f8-4b64-8c79-8ddf9c3280cc",
+      "name": "Embeddings OpenAI",
+      "credentials": {
+        "openAiApi": {
+          "id": "REDACTED",
+          "name": "REDACTED"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Webhook').item.json.body.email }}",
+        "subject": "Response to Your Query",
+        "message": "=<div style=\"font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 24px; background: #f8f9fa; color: #333;\">\n\n  <div style=\"background: #ffffff; padding: 24px; border-radius: 10px;\">\n    \n    <h2 style=\"margin-top: 0;\">Hello {{ $('Webhook').item.json.body.name }},</h2>\n\n    <p>Thank you for submitting your query.</p>\n\n    <div style=\"background: #f1f3f5; padding: 16px; border-radius: 8px; margin: 20px 0;\">\n      <strong>Your Query:</strong>\n      <p style=\"margin-bottom: 0;\">{{ $('Webhook').item.json.body.query }}</p>\n    </div>\n\n    <div style=\"padding: 16px 0;\">\n      <strong>AI Answer:</strong>\n      <p>{{ $json.output }}</p>\n    </div>\n\n    <p style=\"margin-bottom: 0;\">\n      Best regards,<br>\n      <strong>Support Team</strong>\n    </p>\n\n  </div>\n\n</div>",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        -288,
+        -16
+      ],
+      "id": "7523e6ec-da0c-4416-bf30-35657f7fdc33",
+      "name": "User message",
+      "webhookId": "2945bcd0-b98a-4404-b209-11015ca37fcb",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "REDACTED",
+          "name": "REDACTED"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "kingxefad@gmail.com",
+        "subject": "New Query Received",
+        "message": "=<div style=\"font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 24px; background: #f8f9fa; color: #333;\">\n\n  <div style=\"background: #ffffff; padding: 24px; border-radius: 10px;\">\n\n    <h2 style=\"margin-top: 0;\">New Query Received</h2>\n\n    <p>A new query has been submitted through the website.</p>\n\n    <hr style=\"border: 0; border-top: 1px solid #ddd; margin: 20px 0;\">\n\n    <p><strong>Name:</strong> {{ $('Webhook').item.json.body.name }}</p>\n    <p><strong>Email:</strong>{{ $('Webhook').item.json.body.email }} </p>\n    <p><strong>Phone:</strong> {{ $('Webhook').item.json.body.phone }}</p>\n\n    <div style=\"background: #f1f3f5; padding: 16px; border-radius: 8px; margin-top: 20px;\">\n      <strong>User Query:</strong>\n      <p style=\"margin-bottom: 0;\">{{ $('Webhook').item.json.body.query }}</p>\n    </div>\n\n    <div style=\"padding: 16px 0;\">\n      <strong>AI Response:</strong>\n      <p>{{ $json.output }}</p>\n    </div>\n\n    <hr style=\"border: 0; border-top: 1px solid #ddd;\">\n\n    <p style=\"font-size: 12px; color: #777; margin-bottom: 0;\">\n      This is an automated report generated by the AI Query System.\n    </p>\n\n  </div>\n\n</div>",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        -288,
+        176
+      ],
+      "id": "ad309248-c8a6-4480-b8e2-c25b66abc961",
+      "name": "Admin report",
+      "webhookId": "2945bcd0-b98a-4404-b209-11015ca37fcb",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "REDACTED",
+          "name": "REDACTED"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "ministral-14b-2512",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatMistralCloud",
+      "typeVersion": 1,
+      "position": [
+        -776,
+        312
+      ],
+      "id": "f915b7a2-a31f-42d5-a680-bd380c7a3bd1",
+      "name": "Mistral Cloud Chat Model",
+      "credentials": {
+        "mistralCloudApi": {
+          "id": "REDACTED",
+          "name": "REDACTED"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "base": {
+          "__rl": true,
+          "value": "appZeFw3Fqmn00wv6",
+          "mode": "list",
+          "cachedResultName": "Query Logs",
+          "cachedResultUrl": "https://airtable.com/appZeFw3Fqmn00wv6"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblCzKOQuMs27mz7F",
+          "mode": "list",
+          "cachedResultName": "AI Query Logs",
+          "cachedResultUrl": "https://airtable.com/appZeFw3Fqmn00wv6/tblCzKOQuMs27mz7F"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Name": "={{ $('Webhook').item.json.body.name }}",
+            "Email": "={{ $('Webhook').item.json.body.email }}",
+            "Phone": "={{ $('Webhook').item.json.body.phone }}",
+            "Query": "={{ $('Webhook').item.json.body.query }}",
+            "Created At": "={{ $('Webhook').item.json.body.submittedAt }}",
+            "AI Answer": "={{ $('AI Agent').item.json.output }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Name",
+              "displayName": "Name",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Phone",
+              "displayName": "Phone",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Query",
+              "displayName": "Query",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "AI Answer",
+              "displayName": "AI Answer",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Created At",
+              "displayName": "Created At",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        -64,
+        -16
+      ],
+      "id": "786bd489-e300-47aa-adb9-95d6e8e68263",
+      "name": "Create a record",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "REDACTED",
+          "name": "REDACTED"
+        }
+      }
+    }
+  ],
+  "pinData": {
+    "AI Agent": [
+      {
+        "json": {
+          "output": "The provided context does not specify the name of the CEO of Nexus. It only mentions the role of **Chief Executive Officer (CEO)** under the **Executive Leadership Board** but does not provide the individual's name."
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "User message",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Admin report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pinecone Vector Store": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings OpenAI": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Pinecone Vector Store",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "User message": {
+      "main": [
+        [
+          {
+            "node": "Create a record",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mistral Cloud Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "a0fc2c83-3023-433d-8ad7-1b64c09ecbaa",
+  "meta": {
+    "instanceId": "REDACTED_LONG_HEX_SECRET"
+  },
+  "nodeGroups": [],
+  "id": "lwXqivgaxo5lLIMV",
+  "tags": []
+}

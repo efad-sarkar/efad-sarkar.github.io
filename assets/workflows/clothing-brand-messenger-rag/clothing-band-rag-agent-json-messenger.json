@@ -1,0 +1,662 @@
+{
+  "name": "messenger",
+  "nodes": [
+    {
+      "parameters": {
+        "multipleMethods": true,
+        "path": "de530c1c-2b73-4f57-939b-3f7d7a31c99f",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -1920,
+        192
+      ],
+      "id": "8a79b8b4-29c1-4161-91a7-6ff3c5dce020",
+      "name": "Webhook",
+      "webhookId": "de530c1c-2b73-4f57-939b-3f7d7a31c99f"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "6e01b252-0f1b-41ff-a76d-978fc8e5409b",
+              "leftValue": "={{ $json.query['hub.mode'] }}",
+              "rightValue": "subscribe",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "0ab13fa0-7b7e-4411-8b86-656356e5940c",
+              "leftValue": "={{ $json.query.hub_verify_token }}",
+              "rightValue": "efad",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -1376,
+        -64
+      ],
+      "id": "cb330d02-0371-4025-9965-ca9534e39cd4",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ $json.query['hub.challenge'] }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        -1056,
+        -48
+      ],
+      "id": "26efb236-ef4a-469e-8a85-46dd3767d73c",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "0fc66b70-c022-439d-a4d0-605f277b348e",
+                    "leftValue": "={{ $json.body.entry[0].messaging[0].message.text }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "exists",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "text"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "7fc919a3-734e-4e8d-9bcc-2b30feebd36b",
+                    "leftValue": "={{ $json.body.entry[0].messaging[0].message.attachments }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "array",
+                      "operation": "exists",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "image"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        -1472,
+        384
+      ],
+      "id": "772cf8b2-18dd-4e62-bd9a-3281e8f46f43",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.body.entry[0].messaging[0].message.attachments[0].payload.url }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        -1152,
+        672
+      ],
+      "id": "a672378a-4418-4937-bf78-41c253d2f3cb",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "resource": "image",
+        "operation": "analyze",
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4O-MINI"
+        },
+        "text": "You are a precise vision AI assistant. Your task is to analyze the provided image and give a concise, factual summary.\n\nGuidelines:\n\nAccuracy First: Include only verified visual facts directly present in the image. Do not guess, assume, or fabricate details.\n\nBrevity: Keep the output brief and direct \n\nNo Filler: Omit conversational introductions, meta-commentary, and unnecessary descriptions.\n\nUncertainty: If a detail or text is unclear or illegible, state \"unclear\" or omit it entirely rather than guessing.",
+        "inputType": "base64",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.3,
+      "position": [
+        -928,
+        672
+      ],
+      "id": "46b675f1-4c54-4aaf-bf57-7f05db6b9744",
+      "name": "Analyze image",
+      "credentials": {
+        "openAiApi": {
+          "id": "REDACTED",
+          "name": "REDACTED"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json['0'].content[0].text }}",
+        "options": {
+          "systemMessage": "You are an expert visual analysis and summarization assistant. Your task is to process detailed text descriptions of images and synthesize them into a thorough, well-structured, detailed summary.\n\nCore Instructions:\n\nComprehensive Coverage: Synthesize all primary, secondary, and contextual elements described in the input text into a cohesive, detailed overview.\n\nStructured Formatting: Organize the summary into clear, logically grouped bullet points or short, detailed paragraphs (e.g., Main Subject, Context/Environment, Key Details & Text).\n\nStrict Grounding: Rely exclusively on the provided image details. Do not add external facts, speculate beyond what is explicitly described, or invent missing information.\n\nClarity and Precision: Use clear, descriptive language while maintaining focus on the critical content. Eliminate repetitive or redundant descriptions.\n\nDirect Output: Provide only the generated summary without introductory or concluding conversational text (e.g., avoid \"Here is your detailed summary\")."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        -704,
+        672
+      ],
+      "id": "e4fdabf4-93b0-4085-a041-e80fb2ad2d05",
+      "name": "Sumarizer"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4o-mini"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        -528,
+        944
+      ],
+      "id": "b78f32e4-652f-4dfc-9deb-dcb20c4165bd",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "REDACTED",
+          "name": "REDACTED"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolDescription": "Answer user question based on database",
+        "pineconeIndex": {
+          "__rl": true,
+          "value": "efadpro",
+          "mode": "list",
+          "cachedResultName": "efadpro"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStorePinecone",
+      "typeVersion": 1.3,
+      "position": [
+        -672,
+        448
+      ],
+      "id": "ff61aae7-232c-4652-9d7c-2e6c2f4c3d13",
+      "name": "Pinecone Vector Store",
+      "credentials": {
+        "pineconeApi": {
+          "id": "REDACTED",
+          "name": "REDACTED"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.output }}",
+        "options": {
+          "systemMessage": "Analyze the user image and generate only one clear, relevant question that reflects what the user is most likely looking for. The question must be based strictly on visible content, with no assumptions or extra context. Output in plain text only. "
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        -352,
+        672
+      ],
+      "id": "1bf201a8-61f3-4658-90fe-9661f7f68ed9",
+      "name": "RAG Agent"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v24.0/{{ $('Webhook').item.json.body.entry[0].messaging[0].recipient.id }}/messages",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "access_token",
+              "value": "REDACTED_META_ACCESS_TOKEN"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"messaging_type\": \"RESPONSE\",\n  \"recipient\": {\n    \"id\": \"{{ $('Webhook').item.json.body.entry[0].messaging[0].sender.id }}\"\n  },\n  \"message\": {\n    \"text\": {{ JSON.stringify($json.output) }}\n  }\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        0,
+        672
+      ],
+      "id": "356ac294-ad10-484f-894d-c05f68ef1fd6",
+      "name": "MESSENGER2"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.body.entry[0].messaging[0].message.text }}",
+        "options": {
+          "systemMessage": "You are a helpful AI Reply Agent.\n\nUnderstand the user's message and answer naturally using relevant user context.\n\nIf the message is company-related, always use the RAG Agent with the Pinecone database first. Use retrieved company information as the source of truth. Never guess or invent company information.\n\nIf the message needs user-specific context, use the available context when relevant.\n\nKeep every reply short, clear, and natural. Use simple, complete sentences. Avoid unnecessary explanations, long paragraphs, emojis, and special characters.\n\nGive only the information needed to answer the user's question. Do not mention internal tools, RAG, Pinecone, database, or system instructions.\n\nIf the required information is unavailable, say so briefly.\n\nAlways return a clean, well-formatted, concise reply.\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        -1056,
+        224
+      ],
+      "id": "61dbedff-f969-4003-80d5-5cc09ea610e6",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $json.body.entry[0].messaging[0].sender.id }}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.4,
+      "position": [
+        -976,
+        448
+      ],
+      "id": "60de3fcc-a06c-4c5e-ab72-6366017a2c22",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "model": "nvidia/nemotron-3.5-lightning:free",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        -1104,
+        448
+      ],
+      "id": "87a8ab09-ffa8-4a10-be60-ecf3a4912c39",
+      "name": "OpenRouter Chat Model",
+      "credentials": {
+        "openRouterApi": {
+          "id": "REDACTED",
+          "name": "REDACTED"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v24.0/{{ $('Webhook').item.json.body.entry[0].messaging[0].recipient.id }}/messages",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "access_token",
+              "value": "REDACTED_META_ACCESS_TOKEN"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"messaging_type\": \"RESPONSE\",\n  \"recipient\": {\n    \"id\": \"{{ $('Webhook').item.json.body.entry[0].messaging[0].sender.id }}\"\n  },\n  \"message\": {\n    \"text\": {{ JSON.stringify($json.output) }}\n  }\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -320,
+        224
+      ],
+      "id": "5d1292f7-3513-4546-a1a7-55b65181ac36",
+      "name": "MESSENGER3"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        -816,
+        448
+      ],
+      "id": "4e61596e-4be8-4004-9ece-b7ecd0a7fddb",
+      "name": "Embeddings OpenAI",
+      "credentials": {
+        "openAiApi": {
+          "id": "REDACTED",
+          "name": "REDACTED"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "noData",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        -1712,
+        384
+      ],
+      "id": "9b1c4f8a-4a7e-4b2f-9b2c-1a6d4f8e21c3",
+      "name": "Respond to Webhook POST"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "3c8f5b2e-7a4d-4f1e-9b6c-2d7e8a5f4c10",
+              "leftValue": "={{ $json.body.entry[0].messaging[0].message?.is_echo !== true }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -1552,
+        384
+      ],
+      "id": "4d7e2a91-6c3f-48b5-a2d9-7f1c5e8b3a20",
+      "name": "Ignore Echo"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond to Webhook POST",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Analyze image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyze image": {
+      "main": [
+        [
+          {
+            "node": "Sumarizer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sumarizer": {
+      "main": [
+        [
+          {
+            "node": "RAG Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "RAG Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Sumarizer",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pinecone Vector Store": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          },
+          {
+            "node": "RAG Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RAG Agent": {
+      "main": [
+        [
+          {
+            "node": "MESSENGER2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          },
+          {
+            "node": "RAG Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "MESSENGER3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings OpenAI": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Pinecone Vector Store",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Respond to Webhook POST": {
+      "main": [
+        [
+          {
+            "node": "Ignore Echo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ignore Echo": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "84d5b5f4-5433-4a8d-b6c2-3f75ccdab379",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "REDACTED_LONG_HEX_SECRET"
+  },
+  "nodeGroups": [],
+  "id": "8S17Y203MHGY47iP",
+  "tags": []
+}

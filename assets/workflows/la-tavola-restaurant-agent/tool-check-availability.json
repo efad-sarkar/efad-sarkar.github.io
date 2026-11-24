@@ -1,0 +1,184 @@
+{
+  "name": "Tool - check_availability",
+  "nodes": [
+    {
+      "parameters": {
+        "operation": "search",
+        "base": {
+          "__rl": true,
+          "value": "appuiLzWzGaHSTe5k",
+          "mode": "list",
+          "cachedResultName": "Restaurant",
+          "cachedResultUrl": "https://airtable.com/appuiLzWzGaHSTe5k"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblT9BkeltLsHILRv",
+          "mode": "list",
+          "cachedResultName": "Reservations",
+          "cachedResultUrl": "https://airtable.com/appuiLzWzGaHSTe5k/tblT9BkeltLsHILRv"
+        },
+        "filterByFormula": "=AND(DATETIME_FORMAT({Date}, 'YYYY-MM-DD') = '{{ $('Webhook').first().json.body.date }}', {Status} = 'Confirmed')",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        448,
+        0
+      ],
+      "id": "a4391fb6-cd59-48dc-9b06-a1cc2e16b9c5",
+      "name": "Get Reservations",
+      "alwaysOutputData": true,
+      "executeOnce": true,
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "REDACTED",
+          "name": "REDACTED"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $('Webhook').first().json.body || {};\nconst date = String(body.date || '').trim();      // YYYY-MM-DD\nconst guests = parseInt(body.guests, 10);\n\nconst DURATION = 90;       // minutes per booking\nconst MAX_GUESTS = 8;\nconst MAX_DAYS_AHEAD = 30;\nconst STEP = 30;\n\nconst toMin = (s) => {\n  const m = String(s || '').trim().match(/^(\\d{1,2}):(\\d{2})\\s*(AM|PM)?$/i);\n  if (!m) return null;\n  let h = +m[1];\n  const ap = m[3] && m[3].toUpperCase();\n  if (ap === 'PM' && h < 12) h += 12;\n  if (ap === 'AM' && h === 12) h = 0;\n  return h * 60 + +m[2];\n};\nconst to24 = (m) => String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0');\nconst label = (m) => {\n  const h = Math.floor(m / 60), mm = m % 60;\n  const h12 = h % 12 === 0 ? 12 : h % 12;\n  return h12 + ':' + String(mm).padStart(2, '0') + ' ' + (h >= 12 ? 'PM' : 'AM');\n};\nconst reply = (obj) => [{ json: obj }];\n\n// ---- Validation ----\nconst t = toMin(body.time);\nif (!/^\\d{4}-\\d{2}-\\d{2}$/.test(date) || t === null || !Number.isInteger(guests) || guests < 1) {\n  return reply({ available: false, message: 'I need a valid date, time and number of guests to check availability.' });\n}\nconst today = $now.toFormat('yyyy-MM-dd');\nconst lastDay = $now.plus({ days: MAX_DAYS_AHEAD }).toFormat('yyyy-MM-dd');\nif (date < today) return reply({ available: false, message: 'That date is in the past. Please choose a future date.' });\nif (date > lastDay) return reply({ available: false, message: 'We take bookings up to 30 days ahead.' });\nif (guests > MAX_GUESTS) return reply({ available: false, message: 'I can book up to 8 guests. For larger groups, please call the restaurant.' });\n\n// ---- Opening hours (Sun 13-21, Mon-Thu 12-22, Fri-Sat 12-23) ----\nconst dow = new Date(date + 'T12:00:00').getDay(); // 0 = Sunday\nlet open, close;\nif (dow === 0) { open = 13 * 60; close = 21 * 60; }\nelse if (dow === 5 || dow === 6) { open = 12 * 60; close = 23 * 60; }\nelse { open = 12 * 60; close = 22 * 60; }\nconst lastStart = close - DURATION;\nif (t < open || t > lastStart) {\n  return reply({ available: false, message: `We take bookings between ${label(open)} and ${label(lastStart)} on that day.` });\n}\n\n// ---- Data (tables come from the \"Get Tables\" Airtable node) ----\nconst get = (j) => j.fields ?? j;\nlet tableItems = [], reservationItems = [];\nlet tablesError = null, reservationsError = null;\ntry { tableItems = $('Get Tables').all(); } catch (e) { tablesError = e.message; }\ntry { reservationItems = $('Get Reservations').all(); } catch (e) { reservationsError = e.message; }\n\nconst tables = tableItems.map(i => {\n  const f = get(i.json);\n  return { recordId: i.json.id, tableId: f['Table ID'], seats: Number(f['Seats']), area: f['Area'] };\n}).filter(x => x.tableId && x.seats);\n\nconst booked = reservationItems.map(i => {\n  const f = get(i.json);\n  return { tables: f['Table'] || [], min: toMin(f['Time']) };\n}).filter(r => r.min !== null);\n\nconst freeAt = (start) => {\n  const busy = new Set();\n  for (const r of booked) {\n    if (Math.abs(r.min - start) < DURATION) r.tables.forEach(id => busy.add(id));\n  }\n  return tables.filter(x => x.seats >= guests && !busy.has(x.recordId))\n               .sort((a, b) => a.seats - b.seats);\n};\n\n// ---- Requested slot ----\nconst free = freeAt(t);\nif (free.length) {\n  const pick = free[0]; // smallest table that fits\n  return reply({\n    available: true, date, time: to24(t), guests,\n    table_id: pick.tableId, table_record_id: pick.recordId,\n    seats: pick.seats, area: pick.area,\n    message: `A table for ${guests} is available at ${label(t)}.`,\n  });\n}\n\n// ---- Alternatives (nearest times, up to 3) ----\nconst alternatives = [];\nfor (let d = STEP; d <= 120 && alternatives.length < 3; d += STEP) {\n  for (const s of [t - d, t + d]) {\n    if (s >= open && s <= lastStart && alternatives.length < 3 && freeAt(s).length) {\n      alternatives.push({ time: to24(s), label: label(s) });\n    }\n  }\n}\nreturn reply({\n  available: false, date, time: to24(t), guests, alternatives,\n  debug: {\n    tables_found: tables.length,\n    tables_big_enough: tables.filter(x => x.seats >= guests).length,\n    bookings_that_day: booked.length,\n    tables_error: tablesError,\n    reservations_error: reservationsError,\n  },\n  message: alternatives.length\n    ? `No table is free at ${label(t)}. Nearest available times: ${alternatives.map(a => a.label).join(', ')}.`\n    : `No table is free around ${label(t)} on that date.`,\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        672,
+        0
+      ],
+      "id": "5b735f84-e2b3-4af5-b3b1-51536a85a665",
+      "name": "Check Slots"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        896,
+        0
+      ],
+      "id": "1fdf743e-5982-485d-a950-dbc9e5a5d5bc",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "check-availability",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.2,
+      "position": [
+        0,
+        0
+      ],
+      "id": "ad215544-8cf3-4346-adbe-9c48a9d9a388",
+      "name": "Webhook",
+      "webhookId": "480c87a9-c974-43e6-9795-d7085ea99a1b"
+    },
+    {
+      "parameters": {
+        "operation": "search",
+        "base": {
+          "__rl": true,
+          "value": "appuiLzWzGaHSTe5k",
+          "mode": "list",
+          "cachedResultName": "Restaurant",
+          "cachedResultUrl": "https://airtable.com/appuiLzWzGaHSTe5k"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblbgpDzGOZktGlpO",
+          "mode": "list",
+          "cachedResultName": "Tables",
+          "cachedResultUrl": "https://airtable.com/appuiLzWzGaHSTe5k/tblbgpDzGOZktGlpO"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        224,
+        0
+      ],
+      "id": "ef0acee7-4ef8-41b8-9adf-845c5eba5ef7",
+      "name": "Get Tables",
+      "alwaysOutputData": true,
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "REDACTED",
+          "name": "REDACTED"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Get Reservations": {
+      "main": [
+        [
+          {
+            "node": "Check Slots",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Slots": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Get Tables",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Tables": {
+      "main": [
+        [
+          {
+            "node": "Get Reservations",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "timeSavedMode": "fixed",
+    "timezone": "Asia/Dhaka",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "versionId": "b882ef78-7a8a-4172-942b-3dfb42f7b100",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "REDACTED_LONG_HEX_SECRET"
+  },
+  "nodeGroups": [],
+  "id": "Tv19xsWzHGCnRFWX",
+  "tags": []
+}

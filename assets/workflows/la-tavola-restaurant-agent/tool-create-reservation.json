@@ -1,0 +1,525 @@
+{
+  "name": "Tool - create_reservation",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "create-reservation",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.2,
+      "position": [
+        0,
+        0
+      ],
+      "id": "b0a8b203-b8db-4d9b-9810-0bb0f77fefdf",
+      "name": "Webhook",
+      "webhookId": "f0848fac-f3b3-4703-8234-a066a50d581c"
+    },
+    {
+      "parameters": {
+        "operation": "search",
+        "base": {
+          "__rl": true,
+          "value": "appuiLzWzGaHSTe5k",
+          "mode": "list",
+          "cachedResultName": "Restaurant",
+          "cachedResultUrl": "https://airtable.com/appuiLzWzGaHSTe5k"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblT9BkeltLsHILRv",
+          "mode": "list",
+          "cachedResultName": "Reservations",
+          "cachedResultUrl": "https://airtable.com/appuiLzWzGaHSTe5k/tblT9BkeltLsHILRv"
+        },
+        "filterByFormula": "=AND(DATETIME_FORMAT({Date}, 'YYYY-MM-DD') = '{{ $('Webhook').first().json.body.date }}', {Status} = 'Confirmed')",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        448,
+        0
+      ],
+      "id": "ca744ec3-5aa5-464e-8a41-6d8f210e57a5",
+      "name": "Get Reservations",
+      "alwaysOutputData": true,
+      "executeOnce": true,
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "REDACTED",
+          "name": "REDACTED"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $('Webhook').first().json.body || {};\nconst date = String(body.date || '').trim();      // YYYY-MM-DD\nconst guests = parseInt(body.guests, 10);\n\nconst DURATION = 90;       // minutes per booking\nconst MAX_GUESTS = 8;\nconst MAX_DAYS_AHEAD = 30;\nconst STEP = 30;\n\nconst toMin = (s) => {\n  const m = String(s || '').trim().match(/^(\\d{1,2}):(\\d{2})\\s*(AM|PM)?$/i);\n  if (!m) return null;\n  let h = +m[1];\n  const ap = m[3] && m[3].toUpperCase();\n  if (ap === 'PM' && h < 12) h += 12;\n  if (ap === 'AM' && h === 12) h = 0;\n  return h * 60 + +m[2];\n};\nconst to24 = (m) => String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0');\nconst label = (m) => {\n  const h = Math.floor(m / 60), mm = m % 60;\n  const h12 = h % 12 === 0 ? 12 : h % 12;\n  return h12 + ':' + String(mm).padStart(2, '0') + ' ' + (h >= 12 ? 'PM' : 'AM');\n};\nconst reply = (obj) => [{ json: obj }];\n\n// ---- Validation ----\nconst t = toMin(body.time);\nif (!/^\\d{4}-\\d{2}-\\d{2}$/.test(date) || t === null || !Number.isInteger(guests) || guests < 1) {\n  return reply({ available: false, message: 'I need a valid date, time and number of guests to check availability.' });\n}\nconst today = $now.toFormat('yyyy-MM-dd');\nconst lastDay = $now.plus({ days: MAX_DAYS_AHEAD }).toFormat('yyyy-MM-dd');\nif (date < today) return reply({ available: false, message: 'That date is in the past. Please choose a future date.' });\nif (date > lastDay) return reply({ available: false, message: 'We take bookings up to 30 days ahead.' });\nif (guests > MAX_GUESTS) return reply({ available: false, message: 'I can book up to 8 guests. For larger groups, please call the restaurant.' });\n\n// ---- Opening hours (Sun 13-21, Mon-Thu 12-22, Fri-Sat 12-23) ----\nconst dow = new Date(date + 'T12:00:00').getDay(); // 0 = Sunday\nlet open, close;\nif (dow === 0) { open = 13 * 60; close = 21 * 60; }\nelse if (dow === 5 || dow === 6) { open = 12 * 60; close = 23 * 60; }\nelse { open = 12 * 60; close = 22 * 60; }\nconst lastStart = close - DURATION;\nif (t < open || t > lastStart) {\n  return reply({ available: false, message: `We take bookings between ${label(open)} and ${label(lastStart)} on that day.` });\n}\n\n// ---- Data ----\nconst get = (j) => j.fields ?? j;\nconst tables = $('Get Tables').all().map(i => {\n  const f = get(i.json);\n  return { recordId: i.json.id, tableId: f['Table ID'], seats: Number(f['Seats']), area: f['Area'] };\n}).filter(x => x.tableId && x.seats);\n\nconst booked = $('Get Reservations').all().map(i => {\n  const f = get(i.json);\n  return { tables: f['Table'] || [], min: toMin(f['Time']) };\n}).filter(r => r.min !== null);\n\nconst freeAt = (start) => {\n  const busy = new Set();\n  for (const r of booked) {\n    if (Math.abs(r.min - start) < DURATION) r.tables.forEach(id => busy.add(id));\n  }\n  return tables.filter(x => x.seats >= guests && !busy.has(x.recordId))\n               .sort((a, b) => a.seats - b.seats);\n};\n\n// ---- Requested slot ----\nconst free = freeAt(t);\nif (free.length) {\n  const pick = free[0]; // smallest table that fits\n  return reply({\n    available: true, date, time: to24(t), guests,\n    table_id: pick.tableId, table_record_id: pick.recordId,\n    seats: pick.seats, area: pick.area,\n    message: `A table for ${guests} is available at ${label(t)}.`,\n  });\n}\n\n// ---- Alternatives (nearest times, up to 3) ----\nconst alternatives = [];\nfor (let d = STEP; d <= 120 && alternatives.length < 3; d += STEP) {\n  for (const s of [t - d, t + d]) {\n    if (s >= open && s <= lastStart && alternatives.length < 3 && freeAt(s).length) {\n      alternatives.push({ time: to24(s), label: label(s) });\n    }\n  }\n}\nreturn reply({\n  available: false, date, time: to24(t), guests, alternatives,\n  debug: {\n    tables_found: tables.length,\n    tables_big_enough: tables.filter(x => x.seats >= guests).length,\n    bookings_that_day: booked.length,\n  },\n  message: alternatives.length\n    ? `No table is free at ${label(t)}. Nearest available times: ${alternatives.map(a => a.label).join(', ')}.`\n    : `No table is free around ${label(t)} on that date.`,\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        672,
+        0
+      ],
+      "id": "88356767-8098-4b0c-bf2a-3eeba531746c",
+      "name": "Check Slots"
+    },
+    {
+      "parameters": {
+        "operation": "search",
+        "base": {
+          "__rl": true,
+          "value": "appuiLzWzGaHSTe5k",
+          "mode": "list",
+          "cachedResultName": "Restaurant",
+          "cachedResultUrl": "https://airtable.com/appuiLzWzGaHSTe5k"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblbgpDzGOZktGlpO",
+          "mode": "list",
+          "cachedResultName": "Tables",
+          "cachedResultUrl": "https://airtable.com/appuiLzWzGaHSTe5k/tblbgpDzGOZktGlpO"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        224,
+        0
+      ],
+      "id": "5f79f43d-4636-4205-a980-cfabfdc7fba3",
+      "name": "Get Tables",
+      "alwaysOutputData": true,
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "REDACTED",
+          "name": "REDACTED"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "4c32c16f-9ab4-44a9-bca6-8f7485aca17b",
+              "leftValue": "={{ $json.available }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "5abf5845-029e-4f98-b8f4-6c958dea11fc",
+              "leftValue": "={{ $('Webhook').first().json.body.customer_name }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "8db785eb-128a-449f-b527-99c59d4113d7",
+              "leftValue": "={{ $('Webhook').first().json.body.phone }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        896,
+        0
+      ],
+      "id": "e9874b4f-2e0b-4d21-80d7-0762e49fe04e",
+      "name": "Can Book"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1344,
+        96
+      ],
+      "id": "718495ba-3a92-4e77-997e-df0c1250b741",
+      "name": "Respond Can't Book"
+    },
+    {
+      "parameters": {
+        "jsCode": "const b = $('Webhook').first().json.body || {};\nconst slot = $input.first().json;\nconst bookingId = 'BK-' + Math.floor(10000 + Math.random() * 90000);\n\nreturn [{\n  json: {\n    booking_id: bookingId,\n    customer_name: String(b.customer_name || '').trim(),\n    phone: String(b.phone || '').replace(/[^\\d+]/g, ''),\n    date: slot.date,\n    time: slot.time,\n    guests: slot.guests,\n    table_id: slot.table_id,\n    table_record_id: slot.table_record_id,\n    input_type: b.input_type || 'voice',\n  },\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        -96
+      ],
+      "id": "33985e42-0fdd-48c9-9558-fe8d82c718a8",
+      "name": "Prepare Booking"
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "base": {
+          "__rl": true,
+          "value": "appuiLzWzGaHSTe5k",
+          "mode": "list",
+          "cachedResultName": "Restaurant",
+          "cachedResultUrl": "https://airtable.com/appuiLzWzGaHSTe5k"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblT9BkeltLsHILRv",
+          "mode": "list",
+          "cachedResultName": "Reservations",
+          "cachedResultUrl": "https://airtable.com/appuiLzWzGaHSTe5k/tblT9BkeltLsHILRv"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Customer Name": "={{ $json.customer_name }}",
+            "Phone": "={{ $json.phone }}",
+            "Date": "={{ $json.date }}",
+            "Time": "={{ $json.time }}",
+            "Guests": "={{ $json.guests }}",
+            "Table": "={{ [$json.table_record_id] }}",
+            "Status": "Confirmed",
+            "Input Type": "={{ $json.input_type === 'text' ? 'Text' : 'Voice' }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Customer Name",
+              "displayName": "Customer Name",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Phone",
+              "displayName": "Phone",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Date",
+              "displayName": "Date",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Time",
+              "displayName": "Time",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Guests",
+              "displayName": "Guests",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Table",
+              "displayName": "Table",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "array",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "Confirmed",
+                  "value": "Confirmed"
+                },
+                {
+                  "name": "Cancelled",
+                  "value": "Cancelled"
+                }
+              ],
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Booking ID",
+              "displayName": "Booking ID",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": true
+            },
+            {
+              "id": "Input Type",
+              "displayName": "Input Type",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "Voice",
+                  "value": "Voice"
+                },
+                {
+                  "name": "Text",
+                  "value": "Text"
+                }
+              ],
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {
+          "typecast": true
+        }
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        1344,
+        -96
+      ],
+      "id": "527ad1db-c94f-4461-bbe2-96aaa3ab221c",
+      "name": "Create Reservation",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "REDACTED",
+          "name": "REDACTED"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1792,
+        -96
+      ],
+      "id": "5aaa41da-491d-485f-9eb6-122bfa727e33",
+      "name": "Respond Booked"
+    },
+    {
+      "parameters": {
+        "jsCode": "const slot = $input.first().json;\n\nreturn [{\n  json: {\n    success: false,\n    message: slot.available\n      ? \"I still need the customer's name and phone number to complete the booking.\"\n      : slot.message,\n    alternatives: slot.alternatives || [],\n    debug: slot.debug || null,\n  },\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        96
+      ],
+      "id": "9533de44-658a-4245-aab6-4b1b2790fe37",
+      "name": "Build Reject"
+    },
+    {
+      "parameters": {
+        "jsCode": "const p = $('Prepare Booking').first().json;\nconst rec = $input.first().json;\nconst f = rec.fields ?? rec;\n\nreturn [{\n  json: {\n    success: true,\n    booking_id: f['Booking ID'],\n    date: p.date,\n    time: p.time,\n    guests: p.guests,\n    message: 'Booking confirmed.',\n  },\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1568,
+        -96
+      ],
+      "id": "4560ed0e-4024-4d1b-9e27-899ff62e5f25",
+      "name": "Build Booked"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Get Reservations": {
+      "main": [
+        [
+          {
+            "node": "Check Slots",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Tables": {
+      "main": [
+        [
+          {
+            "node": "Get Reservations",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Get Tables",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Slots": {
+      "main": [
+        [
+          {
+            "node": "Can Book",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Can Book": {
+      "main": [
+        [
+          {
+            "node": "Prepare Booking",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Build Reject",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Booking": {
+      "main": [
+        [
+          {
+            "node": "Create Reservation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Reservation": {
+      "main": [
+        [
+          {
+            "node": "Build Booked",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Reject": {
+      "main": [
+        [
+          {
+            "node": "Respond Can't Book",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Booked": {
+      "main": [
+        [
+          {
+            "node": "Respond Booked",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "timeSavedMode": "fixed",
+    "timezone": "Asia/Dhaka",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "versionId": "6601ba71-5fd3-435e-9557-f6e97a369658",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "REDACTED_LONG_HEX_SECRET"
+  },
+  "nodeGroups": [],
+  "id": "whHg4XnZ16OK1qbp",
+  "tags": []
+}
